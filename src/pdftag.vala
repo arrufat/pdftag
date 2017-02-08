@@ -42,6 +42,7 @@ public class PdfTag : Window {
 				title_entry.set_text ("");
 			}
 		});
+
 		author_entry = new Entry ();
 		author_entry.set_text ("Author");
 		author_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
@@ -50,6 +51,7 @@ public class PdfTag : Window {
 				author_entry.set_text ("");
 			}
 		});
+
 		subject_entry = new Entry ();
 		subject_entry.set_text ("Subject");
 		subject_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
@@ -58,6 +60,7 @@ public class PdfTag : Window {
 				subject_entry.set_text ("");
 			}
 		});
+
 		keywords_entry = new Entry ();
 		keywords_entry.set_text ("Keywords");
 		keywords_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
@@ -75,6 +78,7 @@ public class PdfTag : Window {
 				create_entry.set_text ("");
 			}
 		});
+
 		modify_entry = new Entry ();
 		modify_entry.set_text ("YYYY:MM:DD HH:MM:SS");
 		modify_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
@@ -83,6 +87,7 @@ public class PdfTag : Window {
 				modify_entry.set_text ("");
 			}
 		});
+
 		button = new Gtk.Button.with_label ("Tag");
 		button.clicked.connect (on_tag);
 
@@ -90,22 +95,27 @@ public class PdfTag : Window {
 		title_label.set_use_markup (true);
 		grid.attach (title_label, 0, 0, 1, 1);
 		grid.attach (title_entry, 1, 0, 2, 1);
+
 		var author_label = new Label ("<b>Author</b>");
 		author_label.set_use_markup (true);
 		grid.attach (author_label, 0, 1, 1, 1);
 		grid.attach (author_entry, 1, 1, 2, 1);
+
 		var subject_label = new Label ("<b>Subject</b>");
 		subject_label.set_use_markup (true);
 		grid.attach (subject_label, 0, 2, 1, 1);
 		grid.attach (subject_entry, 1, 2, 2, 1);
+
 		var keywords_label = new Label ("<b>Keywords</b>");
 		keywords_label.set_use_markup (true);
 		grid.attach (keywords_label, 0, 3, 1, 1);
 		grid.attach (keywords_entry, 1, 3, 2, 1);
+
 		var create_label = new Label ("<b>Created</b>");
 		create_label.set_use_markup (true);
 		grid.attach (create_label, 0, 4, 1, 1);
 		grid.attach (create_entry, 1, 4, 2, 1);
+
 		var modify_label = new Label ("<b>Modified</b>");
 		modify_label.set_use_markup (true);
 		grid.attach (modify_label, 0, 5, 1, 1);
@@ -210,11 +220,7 @@ public class PdfTag : Window {
 int main (string[] args) {
 	Gtk.init (ref args);
 
-	var header = new Gtk.HeaderBar ();
-	header.set_show_close_button (true);
-
 	var pdftag = new PdfTag ();
-
 	pdftag.show_all ();
 
 	Gtk.main ();
