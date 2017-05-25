@@ -129,7 +129,7 @@ public class Pdftag : ApplicationWindow {
 		creation_label.set_use_markup (true);
 		grid.attach (creation_label, 0, 4, 1, 1);
 
-		this.creation_date_btn = new Button.with_label ("Creation date");
+		this.creation_date_btn = new Button.with_label ("YYYY-MM-DD");
 		grid.attach (this.creation_date_btn, 1, 4, 2, 1);
 		this.creation_date_btn.clicked.connect (on_date_clicked);
 
@@ -147,7 +147,7 @@ public class Pdftag : ApplicationWindow {
 		mod_label.set_use_markup (true);
 		grid.attach (mod_label, 0, 5, 1, 1);
 
-		this.mod_date_btn = new Button.with_label ("Modification date");
+		this.mod_date_btn = new Button.with_label ("YYYY-MM-DD");
 		grid.attach (mod_date_btn, 1, 5, 2, 1);
 		mod_date_btn.clicked.connect (on_date_clicked);
 
