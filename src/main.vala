@@ -38,7 +38,7 @@ public class PdfTag : ApplicationWindow {
 		var grid = new Grid ();
 
 		title_entry = new Entry ();
-		title_entry.set_text ("Title");
+		title_entry.set_placeholder_text ("Title");
 		title_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
 		title_entry.icon_press.connect ((pos, event) => {
 			if (pos == Gtk.EntryIconPosition.SECONDARY) {
@@ -47,7 +47,7 @@ public class PdfTag : ApplicationWindow {
 		});
 
 		author_entry = new Entry ();
-		author_entry.set_text ("Author");
+		author_entry.set_placeholder_text ("Author");
 		author_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
 		author_entry.icon_press.connect ((pos, event) => {
 			if (pos == Gtk.EntryIconPosition.SECONDARY) {
@@ -56,7 +56,7 @@ public class PdfTag : ApplicationWindow {
 		});
 
 		subject_entry = new Entry ();
-		subject_entry.set_text ("Subject");
+		subject_entry.set_placeholder_text ("Subject");
 		subject_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
 		subject_entry.icon_press.connect ((pos, event) => {
 			if (pos == Gtk.EntryIconPosition.SECONDARY) {
@@ -65,7 +65,7 @@ public class PdfTag : ApplicationWindow {
 		});
 
 		keywords_entry = new Entry ();
-		keywords_entry.set_text ("Keywords");
+		keywords_entry.set_placeholder_text ("Keywords");
 		keywords_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
 		keywords_entry.icon_press.connect ((pos, event) => {
 			if (pos == Gtk.EntryIconPosition.SECONDARY) {
@@ -74,7 +74,7 @@ public class PdfTag : ApplicationWindow {
 		});
 
 		creation_entry = new Entry ();
-		creation_entry.set_text ("YYYY-MM-DDThh:mm:ss");
+		creation_entry.set_placeholder_text ("YYYY-MM-DDThh:mm:ss");
 		creation_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
 		creation_entry.icon_press.connect ((pos, event) => {
 			if (pos == Gtk.EntryIconPosition.SECONDARY) {
@@ -83,7 +83,7 @@ public class PdfTag : ApplicationWindow {
 		});
 
 		mod_entry = new Entry ();
-		mod_entry.set_text ("YYYY-MM-DDThh:mm:ss");
+		mod_entry.set_placeholder_text ("YYYY-MM-DDThh:mm:ss");
 		mod_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
 		mod_entry.icon_press.connect ((pos, event) => {
 			if (pos == Gtk.EntryIconPosition.SECONDARY) {
@@ -123,6 +123,7 @@ public class PdfTag : ApplicationWindow {
 		mod_label.set_use_markup (true);
 		grid.attach (mod_label, 0, 5, 1, 1);
 		grid.attach (mod_entry, 1, 5, 2, 1);
+
 		grid.attach (button, 1, 6, 2, 1);
 
 		check = new CheckButton.with_label ("Overwrite");
@@ -184,7 +185,6 @@ public class PdfTag : ApplicationWindow {
 				this.document.author = this.author_entry.text;
 				this.document.subject = this.subject_entry.text;
 				this.document.keywords = this.keywords_entry.text;
-				message (this.creation_entry.text);
 
 				// date parsing
 				TimeVal creation_date_raw = {};
