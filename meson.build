@@ -1,5 +1,5 @@
 project('pdftag', ['vala', 'c'],
-    default_options: ['buildtype=release', 'default_library=static'],
+    default_options: ['buildtype=release', 'default_library=shared'],
     version: '0.1.0')
 
 if get_option('buildtype') == 'release'
