@@ -1,18 +1,19 @@
 // modules: gtk+-3.0 poppler-glib
 using Gtk;
 
-public class PdfTag : Window {
+public class PdfTag : ApplicationWindow {
 	private string filename;
 	private Button button;
 	private Entry title_entry;
 	private Entry author_entry;
 	private Entry subject_entry;
 	private Entry keywords_entry;
-	private Entry create_entry;
-	private Entry modify_entry;
+	private Entry creation_entry;
+	private Entry mod_entry;
 	private HeaderBar header;
 	private CheckButton check;
-	private string overwrite = null;
+	private string document_path;
+	private bool overwrite = false;
 
 	public PdfTag () {
 
@@ -70,21 +71,21 @@ public class PdfTag : Window {
 			}
 		});
 
-		create_entry = new Entry ();
-		create_entry.set_text ("YYYY:MM:DD HH:MM:SS");
-		create_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
-		create_entry.icon_press.connect ((pos, event) => {
+		creation_entry = new Entry ();
+		creation_entry.set_text ("YYYY-MM-DDThh:mm:ss");
+		creation_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
+		creation_entry.icon_press.connect ((pos, event) => {
 			if (pos == Gtk.EntryIconPosition.SECONDARY) {
-				create_entry.set_text ("");
+				creation_entry.set_text ("");
 			}
 		});
 
-		modify_entry = new Entry ();
-		modify_entry.set_text ("YYYY:MM:DD HH:MM:SS");
-		modify_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
-		modify_entry.icon_press.connect ((pos, event) => {
+		mod_entry = new Entry ();
+		mod_entry.set_text ("YYYY-MM-DDThh:mm:ss");
+		mod_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
+		mod_entry.icon_press.connect ((pos, event) => {
 			if (pos == Gtk.EntryIconPosition.SECONDARY) {
-				modify_entry.set_text ("");
+				mod_entry.set_text ("");
 			}
 		});
 
@@ -111,15 +112,15 @@ public class PdfTag : Window {
 		grid.attach (keywords_label, 0, 3, 1, 1);
 		grid.attach (keywords_entry, 1, 3, 2, 1);
 
-		var create_label = new Label ("<b>Created</b>");
-		create_label.set_use_markup (true);
-		grid.attach (create_label, 0, 4, 1, 1);
-		grid.attach (create_entry, 1, 4, 2, 1);
+		var creation_label = new Label ("<b>Created</b>");
+		creation_label.set_use_markup (true);
+		grid.attach (creation_label, 0, 4, 1, 1);
+		grid.attach (creation_entry, 1, 4, 2, 1);
 
-		var modify_label = new Label ("<b>Modified</b>");
-		modify_label.set_use_markup (true);
-		grid.attach (modify_label, 0, 5, 1, 1);
-		grid.attach (modify_entry, 1, 5, 2, 1);
+		var mod_label = new Label ("<b>Modified</b>");
+		mod_label.set_use_markup (true);
+		grid.attach (mod_label, 0, 5, 1, 1);
+		grid.attach (mod_entry, 1, 5, 2, 1);
 		grid.attach (button, 1, 6, 2, 1);
 
 		check = new CheckButton.with_label ("Overwrite");
@@ -148,16 +149,18 @@ public class PdfTag : Window {
 		file_chooser.destroy ();
 		/* update text entries with current metadata */
 		try {
-			var date_format = "%Y:%m:%d %H:%M:%S";
-			var document = new Poppler.Document.from_file ("file://" + filename, null);
+			var date_format = "%Y-%m-%dT%H:%M:%S";
+			this.document_path = "file://" + filename;
+			var document = new Poppler.Document.from_file (this.document_path, null);
 			this.title_entry.text = document.title ?? "";
 			this.author_entry.text = document.author ?? "";
 			this.subject_entry.text = document.subject ?? "";
 			this.keywords_entry.text = document.keywords ?? "";
 			var creation_date = new DateTime.from_unix_local ((int64) document.creation_date);
-			this.create_entry.text = creation_date.format (date_format);
+			/* var creation_date = new DateTime.from_unix_local ((int64) document.creation_date); */
+			this.creation_entry.text = creation_date.format (date_format);
 			var mod_date = new DateTime.from_unix_local ((int64) document.mod_date);
-			this.modify_entry.text = mod_date.format (date_format);
+			this.mod_entry.text = mod_date.format (date_format);
 		} catch (Error e) {
 			print ("%s\n", e.message);
 		}
@@ -165,34 +168,48 @@ public class PdfTag : Window {
 
 	private void on_toggled () {
 		if (this.check.active) {
-			overwrite = "-overwrite_original";
+			overwrite = true;
 			message ("Output will be overwritten");
 		} else {
-			overwrite = null;
+			overwrite = false;
 			message ("Original file will be kept");
 		}
 	}
 
 	private void on_tag () {
 		try {
-			string[] spawn_args = {"exiftool",
-				@"-Title=$(this.title_entry.text)",
-				@"-Author=$(this.author_entry.text)",
-				@"-Subject=$(this.subject_entry.text)",
-				@"-Keywords=$(this.keywords_entry.text)",
-				@"-CreateDate=$(this.create_entry.text)",
-				@"-ModifyDate=$(this.modify_entry.text)",
-				filename, overwrite
-			};
-			string tmp_dir = Environment.get_tmp_dir ();
-			string[] spawn_env = Environ.get ();
-			string exif_stdout;
-			string exif_stderr;
-			int exif_status;
-			Process.spawn_sync (tmp_dir, spawn_args, spawn_env, SpawnFlags.SEARCH_PATH, null, out exif_stdout, out exif_stderr, out exif_status);
+			if (this.document_path != null) {
+				message ("Openining: %s\n", this.document_path);
+				var document = new Poppler.Document.from_file (this.document_path, null);
+				document.title = this.title_entry.text;
+				document.author = this.author_entry.text;
+				document.subject = this.subject_entry.text;
+				document.keywords = this.keywords_entry.text;
+				message (this.creation_entry.text);
+
+				// date parsing
+				TimeVal creation_date_raw = {};
+				creation_date_raw.from_iso8601 (this.creation_entry.text);
+				TimeVal mod_date_raw = {};
+				mod_date_raw.from_iso8601 (this.mod_entry.text);
+				var creation_date = new DateTime.from_timeval_local (creation_date_raw);
+				var mod_date = new DateTime.from_timeval_local (mod_date_raw);
+				document.creation_date = (int) creation_date.to_unix ();
+				document.mod_date = (int) mod_date.to_unix ();
+
+				// save the modified document
+				FileIOStream iostream;
+				var tmp_pdf = File.new_tmp ("tmp-XXXXXX.pdf", out iostream);
+				document.save("file://" + tmp_pdf.get_path ());
+				if (overwrite) {
+					var final_pdf = File.new_for_commandline_arg (this.document_path);
+					tmp_pdf.move (final_pdf, FileCopyFlags.OVERWRITE, null, null);
+				}
+			} else {
+				message ("No document was selected!");
+			}
 		} catch (Error e) {
-			stderr.printf ("%s\n", e.message);
-			return;
+			print ("%s\n", e.message);
 		}
 	}
 
