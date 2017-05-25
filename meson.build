@@ -12,19 +12,19 @@ glib = dependency('glib-2.0')
 gobject = dependency('gobject-2.0')
 gtk = dependency('gtk+-3.0')
 poppler = dependency('poppler-glib')
-exiftool = find_program('exiftool')
 
 deps = [glib, gobject, gtk, poppler]
 
 inc = include_directories('src')
 
-srcs = ['src/pdftag.vala']
+srcs = ['src/main.vala']
 
-pdftag = executable('pdftag', 'src/pdftag.vala',
+pdftag = executable('pdftag',
+    sources: srcs,
     dependencies: deps,
     install: true)
 
-libname = library('pdftag',
+libpdftag = library('pdftag',
     sources: srcs,
     dependencies: deps,
     vala_header: 'pdftag.h',
