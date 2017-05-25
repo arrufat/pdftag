@@ -4,6 +4,7 @@ using Gtk;
 
 public class PdfTag : ApplicationWindow {
 	private string filename;
+	private Poppler.Document document;
 	private Button button;
 	private Entry title_entry;
 	private Entry author_entry;
@@ -152,15 +153,14 @@ public class PdfTag : ApplicationWindow {
 		try {
 			var date_format = "%Y-%m-%dT%H:%M:%S";
 			this.document_path = "file://" + filename;
-			var document = new Poppler.Document.from_file (this.document_path, null);
-			this.title_entry.text = document.title ?? "";
-			this.author_entry.text = document.author ?? "";
-			this.subject_entry.text = document.subject ?? "";
-			this.keywords_entry.text = document.keywords ?? "";
-			var creation_date = new DateTime.from_unix_local ((int64) document.creation_date);
-			/* var creation_date = new DateTime.from_unix_local ((int64) document.creation_date); */
+			this.document = new Poppler.Document.from_file (this.document_path, null);
+			this.title_entry.text = this.document.title ?? "";
+			this.author_entry.text = this.document.author ?? "";
+			this.subject_entry.text = this.document.subject ?? "";
+			this.keywords_entry.text = this.document.keywords ?? "";
+			var creation_date = new DateTime.from_unix_local ((int64) this.document.creation_date);
 			this.creation_entry.text = creation_date.format (date_format);
-			var mod_date = new DateTime.from_unix_local ((int64) document.mod_date);
+			var mod_date = new DateTime.from_unix_local ((int64) this.document.mod_date);
 			this.mod_entry.text = mod_date.format (date_format);
 		} catch (Error e) {
 			print ("%s\n", e.message);
@@ -178,14 +178,12 @@ public class PdfTag : ApplicationWindow {
 	}
 
 	private void on_tag () {
-		try {
 			if (this.document_path != null) {
 				message ("Openining: %s\n", this.document_path);
-				var document = new Poppler.Document.from_file (this.document_path, null);
-				document.title = this.title_entry.text;
-				document.author = this.author_entry.text;
-				document.subject = this.subject_entry.text;
-				document.keywords = this.keywords_entry.text;
+				this.document.title = this.title_entry.text;
+				this.document.author = this.author_entry.text;
+				this.document.subject = this.subject_entry.text;
+				this.document.keywords = this.keywords_entry.text;
 				message (this.creation_entry.text);
 
 				// date parsing
@@ -195,23 +193,24 @@ public class PdfTag : ApplicationWindow {
 				mod_date_raw.from_iso8601 (this.mod_entry.text);
 				var creation_date = new DateTime.from_timeval_local (creation_date_raw);
 				var mod_date = new DateTime.from_timeval_local (mod_date_raw);
-				document.creation_date = (int) creation_date.to_unix ();
-				document.mod_date = (int) mod_date.to_unix ();
+				this.document.creation_date = (int) creation_date.to_unix ();
+				this.document.mod_date = (int) mod_date.to_unix ();
 
 				// save the modified document
-				FileIOStream iostream;
-				var tmp_pdf = File.new_tmp ("tmp-XXXXXX.pdf", out iostream);
-				document.save("file://" + tmp_pdf.get_path ());
-				if (overwrite) {
-					var final_pdf = File.new_for_commandline_arg (this.document_path);
-					tmp_pdf.move (final_pdf, FileCopyFlags.OVERWRITE, null, null);
+				try {
+					FileIOStream iostream;
+					var tmp_pdf = File.new_tmp ("tmp-XXXXXX.pdf", out iostream);
+					this.document.save("file://" + tmp_pdf.get_path ());
+					if (overwrite) {
+						var final_pdf = File.new_for_commandline_arg (this.document_path);
+						tmp_pdf.move (final_pdf, FileCopyFlags.OVERWRITE, null, null);
+					}
+				} catch (Error e) {
+					print ("%s\n", e.message);
 				}
 			} else {
 				message ("No document was selected!");
 			}
-		} catch (Error e) {
-			print ("%s\n", e.message);
-		}
 	}
 
 	private static void remove_dir_recursively (string path) {
