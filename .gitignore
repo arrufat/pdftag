@@ -37,3 +37,6 @@ build
 
 # Vim tmp files
 *.swp
+
+# C tmp files
+*.c
