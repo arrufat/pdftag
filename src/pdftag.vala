@@ -1,4 +1,5 @@
 // modules: gtk+-3.0 poppler-glib
+using GLib;
 using Gtk;
 
 public class PdfTag : ApplicationWindow {
