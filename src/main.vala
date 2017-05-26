@@ -36,11 +36,9 @@ public class Pdftag : ApplicationWindow {
 
 		this.set_titlebar (header);
 		this.destroy.connect (Gtk.main_quit);
-		this.set_default_size (350, 70);
-		this.resizable = true;
+		this.resizable = false;
 		this.border_width = 10;
 		this.window_position = Gtk.WindowPosition.CENTER;
-		this.set_resizable (false);
 
 		var open_button = new Button.from_icon_name ("document-open-symbolic", IconSize.SMALL_TOOLBAR);
 		open_button.clicked.connect (on_open_clicked);
