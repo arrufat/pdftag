@@ -11,6 +11,8 @@ public class Pdftag : ApplicationWindow {
 	private Entry keywords_entry;
 	private Entry producer_entry;
 	private Entry creator_entry;
+	private Label format_val_label;
+	private Label pages_val_label;
 	private HeaderBar header;
 	private CheckButton check;
 	private string document_path;
@@ -142,6 +144,30 @@ public class Pdftag : ApplicationWindow {
 		grid.attach (creator_entry, 1, row, 5, 1);
 		row++;
 
+		/* information */
+		var info_label = new Label ("<b>Information</b>");
+		info_label.set_use_markup (true);
+		grid.attach (info_label, 0, row, 1, 1);
+
+		var format_label = new Label ("Format:");
+		format_label.halign = Align.START;
+		grid.attach (format_label, 1, row, 1, 1);
+
+		this.format_val_label = new Label (null);
+		this.format_val_label.halign = Align.START;
+		this.format_val_label.set_selectable (true);
+		grid.attach (this.format_val_label, 2, row, 1, 1);
+
+		var pages_label = new Label ("Number of Pages:");
+		pages_label.halign = Align.START;
+		grid.attach (pages_label, 3, row, 1, 1);
+
+		this.pages_val_label = new Label (null);
+		this.pages_val_label.halign = Align.START;
+		this.pages_val_label.set_selectable (true);
+		grid.attach (this.pages_val_label, 4, row, 1, 1);
+		row++;
+
 		/* creation date */
 		var creation_label = new Label ("<b>Created</b>");
 		creation_label.set_use_markup (true);
@@ -225,6 +251,8 @@ public class Pdftag : ApplicationWindow {
 			this.author_entry.text = this.document.author ?? "";
 			this.subject_entry.text = this.document.subject ?? "";
 			this.keywords_entry.text = this.document.keywords ?? "";
+			this.format_val_label.label = this.document.get_pdf_version_string ();
+			this.pages_val_label.label = this.document.get_n_pages ().to_string ();
 			this.producer_entry.text = this.document.producer ?? "";
 			this.creator_entry.text = this.document.creator ?? "";
 
