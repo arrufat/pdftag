@@ -30,7 +30,7 @@ public class Pdftag : ApplicationWindow {
 
 	private Button tag_btn;
 
-	public Pdftag () {
+	public Pdftag (ref unowned string[] args) {
 
 		header = new HeaderBar ();
 		header.title = "pdftag";
@@ -217,6 +217,13 @@ public class Pdftag : ApplicationWindow {
 		row++;
 
 		this.add (grid);
+
+		/* handle first argument -- it only works as an absolute path */
+		if (args[1] != null) {
+			this.document_path = "file://" + args[1];
+			fill_information ();
+		}
+
 	}
 
 	private void on_date_clicked (Button btn) {
@@ -242,11 +249,15 @@ public class Pdftag : ApplicationWindow {
 			this.header.subtitle = filename.replace (Path.get_basename (filename), "");
 		}
 		file_chooser.destroy ();
+		this.document_path = "file://" + filename;
+
 		/* update text entries with current metadata */
+		fill_information ();
+	}
+
+	private void fill_information () {
 		try {
-			/* var date_format = "%Y-%m-%dT%H:%M:%S"; */
 			var date_format = "%Y-%m-%d";
-			this.document_path = "file://" + filename;
 			this.document = new Poppler.Document.from_file (this.document_path, null);
 			this.title_entry.text = this.document.title ?? "";
 			this.author_entry.text = this.document.author ?? "";
@@ -355,7 +366,7 @@ public class Pdftag : ApplicationWindow {
 int main (string[] args) {
 	Gtk.init (ref args);
 
-	var pdftag = new Pdftag ();
+	var pdftag = new Pdftag (ref args);
 	pdftag.show_all ();
 
 	Gtk.main ();

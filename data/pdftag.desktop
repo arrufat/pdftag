@@ -2,6 +2,7 @@
 Name=pdftag
 Comment=Edit PDF metadata
 Type=Application
-Exec=pdftag
+Exec=pdftag %U
 Icon=document-properties
 StartupNotify=true
+MimeType=application/pdf;
