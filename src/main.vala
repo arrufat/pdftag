@@ -9,6 +9,8 @@ public class Pdftag : ApplicationWindow {
 	private Entry author_entry;
 	private Entry subject_entry;
 	private Entry keywords_entry;
+	private Entry producer_entry;
+	private Entry creator_entry;
 	private HeaderBar header;
 	private CheckButton check;
 	private string document_path;
@@ -48,6 +50,7 @@ public class Pdftag : ApplicationWindow {
 		grid.set_column_spacing (10);
 		grid.set_row_spacing (10);
 		grid.set_column_homogeneous (true);
+		var row = 0;
 
 		/* title */
 		title_entry = new Entry ();
@@ -60,8 +63,9 @@ public class Pdftag : ApplicationWindow {
 		});
 		var title_label = new Label ("<b>Title</b>");
 		title_label.set_use_markup (true);
-		grid.attach (title_label, 0, 0, 1, 1);
-		grid.attach (title_entry, 1, 0, 5, 1);
+		grid.attach (title_label, 0, row, 1, 1);
+		grid.attach (title_entry, 1, row, 5, 1);
+		row++;
 
 		/* author */
 		author_entry = new Entry ();
@@ -74,8 +78,9 @@ public class Pdftag : ApplicationWindow {
 		});
 		var author_label = new Label ("<b>Author</b>");
 		author_label.set_use_markup (true);
-		grid.attach (author_label, 0, 1, 1, 1);
-		grid.attach (author_entry, 1, 1, 5, 1);
+		grid.attach (author_label, 0, row, 1, 1);
+		grid.attach (author_entry, 1, row, 5, 1);
+		row++;
 
 		/* subject */
 		subject_entry = new Entry ();
@@ -88,8 +93,9 @@ public class Pdftag : ApplicationWindow {
 		});
 		var subject_label = new Label ("<b>Subject</b>");
 		subject_label.set_use_markup (true);
-		grid.attach (subject_label, 0, 2, 1, 1);
-		grid.attach (subject_entry, 1, 2, 5, 1);
+		grid.attach (subject_label, 0, row, 1, 1);
+		grid.attach (subject_entry, 1, row, 5, 1);
+		row++;
 
 		/* keywords */
 		keywords_entry = new Entry ();
@@ -102,52 +108,86 @@ public class Pdftag : ApplicationWindow {
 		});
 		var keywords_label = new Label ("<b>Keywords</b>");
 		keywords_label.set_use_markup (true);
-		grid.attach (keywords_label, 0, 3, 1, 1);
-		grid.attach (keywords_entry, 1, 3, 5, 1);
+		grid.attach (keywords_label, 0, row, 1, 1);
+		grid.attach (keywords_entry, 1, row, 5, 1);
+		row++;
+
+		/* producer */
+		producer_entry = new Entry ();
+		producer_entry.set_placeholder_text ("Producer");
+		producer_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
+		producer_entry.icon_press.connect ((pos, event) => {
+			if (pos == Gtk.EntryIconPosition.SECONDARY) {
+				producer_entry.set_text ("");
+			}
+		});
+		var producer_label = new Label ("<b>Producer</b>");
+		producer_label.set_use_markup (true);
+		grid.attach (producer_label, 0, row, 1, 1);
+		grid.attach (producer_entry, 1, row, 5, 1);
+		row++;
+
+		/* creator */
+		creator_entry = new Entry ();
+		creator_entry.set_placeholder_text ("Creator");
+		creator_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
+		creator_entry.icon_press.connect ((pos, event) => {
+			if (pos == Gtk.EntryIconPosition.SECONDARY) {
+				creator_entry.set_text ("");
+			}
+		});
+		var creator_label = new Label ("<b>Creator</b>");
+		creator_label.set_use_markup (true);
+		grid.attach (creator_label, 0, row, 1, 1);
+		grid.attach (creator_entry, 1, row, 5, 1);
+		row++;
 
 		/* creation date */
 		var creation_label = new Label ("<b>Created</b>");
 		creation_label.set_use_markup (true);
-		grid.attach (creation_label, 0, 4, 1, 1);
+		grid.attach (creation_label, 0, row, 1, 1);
 		this.creation_date_btn = new Button.with_label ("YYYY-MM-DD");
-		grid.attach (this.creation_date_btn, 1, 4, 2, 1);
+		grid.attach (this.creation_date_btn, 1, row, 2, 1);
 		this.creation_date_btn.clicked.connect (on_date_clicked);
 		this.creation_hour_btn = new SpinButton.with_range (0, 23, 1);
 		this.creation_hour_btn.set_tooltip_text ("hours");
-		grid.attach (creation_hour_btn, 3, 4, 1, 1);
+		grid.attach (creation_hour_btn, 3, row, 1, 1);
 		this.creation_min_btn = new SpinButton.with_range (0, 59, 1);
 		this.creation_min_btn.set_tooltip_text ("minutes");
-		grid.attach (creation_min_btn, 4, 4, 1, 1);
+		grid.attach (creation_min_btn, 4, row, 1, 1);
 		this.creation_sec_btn = new SpinButton.with_range (0, 59, 1);
 		this.creation_sec_btn.set_tooltip_text ("seconds");
-		grid.attach (creation_sec_btn, 5, 4, 1, 1);
+		grid.attach (creation_sec_btn, 5, row, 1, 1);
+		row++;
 
 		/* modification date */
 		var mod_label = new Label ("<b>Modified</b>");
 		mod_label.set_use_markup (true);
-		grid.attach (mod_label, 0, 5, 1, 1);
+		grid.attach (mod_label, 0, row, 1, 1);
 		this.mod_date_btn = new Button.with_label ("YYYY-MM-DD");
-		grid.attach (mod_date_btn, 1, 5, 2, 1);
+		grid.attach (mod_date_btn, 1, row, 2, 1);
 		mod_date_btn.clicked.connect (on_date_clicked);
 		this.mod_hour_btn = new SpinButton.with_range (0, 23, 1);
 		this.mod_hour_btn.set_tooltip_text ("hours");
-		grid.attach (mod_hour_btn, 3, 5, 1, 1);
+		grid.attach (mod_hour_btn, 3, row, 1, 1);
 		this.mod_min_btn = new SpinButton.with_range (0, 59, 1);
 		this.mod_min_btn.set_tooltip_text ("minutes");
-		grid.attach (mod_min_btn, 4, 5, 1, 1);
+		grid.attach (mod_min_btn, 4, row, 1, 1);
 		this.mod_sec_btn = new SpinButton.with_range (0, 59, 1);
 		this.mod_sec_btn.set_tooltip_text ("seconds");
-		grid.attach (mod_sec_btn, 5, 5, 1, 1);
+		grid.attach (mod_sec_btn, 5, row, 1, 1);
+		row++;
 
 		/* overwrite checkbox */
 		this.check = new CheckButton.with_label ("Overwrite");
 		check.toggled.connect (on_toggled);
-		grid.attach (this.check, 1, 6, 1, 1);
+		grid.attach (this.check, 1, row, 1, 1);
 
 		/* tag button */
 		this.tag_btn = new Gtk.Button.with_label ("Tag");
 		this.tag_btn.clicked.connect (on_tag);
-		grid.attach (tag_btn, 5, 6, 1, 1);
+		grid.attach (tag_btn, 5, row, 1, 1);
+		row++;
 
 		this.add (grid);
 	}
@@ -185,6 +225,8 @@ public class Pdftag : ApplicationWindow {
 			this.author_entry.text = this.document.author ?? "";
 			this.subject_entry.text = this.document.subject ?? "";
 			this.keywords_entry.text = this.document.keywords ?? "";
+			this.producer_entry.text = this.document.producer ?? "";
+			this.creator_entry.text = this.document.creator ?? "";
 
 			var creation_date = new DateTime.from_unix_local ((int64) this.document.creation_date);
 			this.creation_date_btn.label = creation_date.format (date_format);
@@ -218,6 +260,8 @@ public class Pdftag : ApplicationWindow {
 				this.document.author = this.author_entry.text;
 				this.document.subject = this.subject_entry.text;
 				this.document.keywords = this.keywords_entry.text;
+				this.document.producer = this.producer_entry.text;
+				this.document.creator = this.creator_entry.text;
 
 				// date parsing
 				var creation_date_raw = this.creation_date_btn.label.split ("-", 3);
