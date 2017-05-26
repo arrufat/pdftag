@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=pdftag
+Comment=Edit PDF metadata
+Type=Application
+Exec=pdftag
+Icon=document-properties
+StartupNotify=true
