@@ -230,15 +230,15 @@ public class Pdftag : ApplicationWindow {
 
 			var creation_date = new DateTime.from_unix_local ((int64) this.document.creation_date);
 			this.creation_date_btn.label = creation_date.format (date_format);
-			this.creation_hour_btn.text = creation_date.format ("%H");
-			this.creation_min_btn.text = creation_date.format ("%M");
-			this.creation_sec_btn.text = creation_date.format ("%S");
+			this.creation_hour_btn.set_value (double.parse (creation_date.format ("%H")));
+			this.creation_min_btn.set_value (double.parse (creation_date.format ("%M")));
+			this.creation_sec_btn.set_value (double.parse (creation_date.format ("%S")));
 
 			var mod_date = new DateTime.from_unix_local ((int64) this.document.mod_date);
 			this.mod_date_btn.label = mod_date.format (date_format);
-			this.mod_hour_btn.text = mod_date.format ("%H");
-			this.mod_min_btn.text = mod_date.format ("%M");
-			this.mod_sec_btn.text = mod_date.format ("%S");
+			this.mod_hour_btn.set_value (double.parse (mod_date.format ("%H")));
+			this.mod_min_btn.set_value (double.parse (mod_date.format ("%M")));
+			this.mod_sec_btn.set_value (double.parse (mod_date.format ("%S")));
 		} catch (Error e) {
 			print ("%s\n", e.message);
 		}
@@ -271,7 +271,7 @@ public class Pdftag : ApplicationWindow {
 					int.parse(creation_date_raw[2]), // day
 					this.creation_hour_btn.get_value_as_int (),
 					this.creation_min_btn.get_value_as_int (),
-					this.creation_min_btn.get_value ()
+					this.creation_sec_btn.get_value ()
 					);
 				var mod_date_raw = this.mod_date_btn.label.split ("-", 3);
 				var mod_date = new DateTime.local (
@@ -280,7 +280,7 @@ public class Pdftag : ApplicationWindow {
 					int.parse(mod_date_raw[2]), // day
 					this.mod_hour_btn.get_value_as_int (),
 					this.mod_min_btn.get_value_as_int (),
-					this.mod_min_btn.get_value ()
+					this.mod_sec_btn.get_value ()
 					);
 				this.document.creation_date = (int) creation_date.to_unix ();
 				this.document.mod_date = (int) mod_date.to_unix ();
