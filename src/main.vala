@@ -5,13 +5,10 @@ using Gtk;
 public class Pdftag : ApplicationWindow {
 	private string filename;
 	private Poppler.Document document;
-	private Button button;
 	private Entry title_entry;
 	private Entry author_entry;
 	private Entry subject_entry;
 	private Entry keywords_entry;
-	private Entry creation_entry;
-	private Entry mod_entry;
 	private HeaderBar header;
 	private CheckButton check;
 	private string document_path;
@@ -26,6 +23,8 @@ public class Pdftag : ApplicationWindow {
 	private SpinButton mod_hour_btn;
 	private SpinButton mod_min_btn;
 	private SpinButton mod_sec_btn;
+
+	private Button tag_btn;
 
 	public Pdftag () {
 
@@ -44,8 +43,13 @@ public class Pdftag : ApplicationWindow {
 		open_button.clicked.connect (on_open_clicked);
 		header.add (open_button);
 
+		/* grid configuration */
 		var grid = new Grid ();
+		grid.set_column_spacing (10);
+		grid.set_row_spacing (10);
+		grid.set_column_homogeneous (true);
 
+		/* title */
 		title_entry = new Entry ();
 		title_entry.set_placeholder_text ("Title");
 		title_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
@@ -54,7 +58,12 @@ public class Pdftag : ApplicationWindow {
 				title_entry.set_text ("");
 			}
 		});
+		var title_label = new Label ("<b>Title</b>");
+		title_label.set_use_markup (true);
+		grid.attach (title_label, 0, 0, 1, 1);
+		grid.attach (title_entry, 1, 0, 5, 1);
 
+		/* author */
 		author_entry = new Entry ();
 		author_entry.set_placeholder_text ("Author");
 		author_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
@@ -63,7 +72,12 @@ public class Pdftag : ApplicationWindow {
 				author_entry.set_text ("");
 			}
 		});
+		var author_label = new Label ("<b>Author</b>");
+		author_label.set_use_markup (true);
+		grid.attach (author_label, 0, 1, 1, 1);
+		grid.attach (author_entry, 1, 1, 5, 1);
 
+		/* subject */
 		subject_entry = new Entry ();
 		subject_entry.set_placeholder_text ("Subject");
 		subject_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
@@ -72,7 +86,12 @@ public class Pdftag : ApplicationWindow {
 				subject_entry.set_text ("");
 			}
 		});
+		var subject_label = new Label ("<b>Subject</b>");
+		subject_label.set_use_markup (true);
+		grid.attach (subject_label, 0, 2, 1, 1);
+		grid.attach (subject_entry, 1, 2, 5, 1);
 
+		/* keywords */
 		keywords_entry = new Entry ();
 		keywords_entry.set_placeholder_text ("Keywords");
 		keywords_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
@@ -81,56 +100,18 @@ public class Pdftag : ApplicationWindow {
 				keywords_entry.set_text ("");
 			}
 		});
-
-		creation_entry = new Entry ();
-		creation_entry.set_placeholder_text ("YYYY-MM-DDThh:mm:ss");
-		creation_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
-		creation_entry.icon_press.connect ((pos, event) => {
-			if (pos == Gtk.EntryIconPosition.SECONDARY) {
-				creation_entry.set_text ("");
-			}
-		});
-
-		mod_entry = new Entry ();
-		mod_entry.set_placeholder_text ("YYYY-MM-DDThh:mm:ss");
-		mod_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
-		mod_entry.icon_press.connect ((pos, event) => {
-			if (pos == Gtk.EntryIconPosition.SECONDARY) {
-				mod_entry.set_text ("");
-			}
-		});
-
-		button = new Gtk.Button.with_label ("Tag");
-		button.clicked.connect (on_tag);
-
-		var title_label = new Label ("<b>Title</b>");
-		title_label.set_use_markup (true);
-		grid.attach (title_label, 0, 0, 1, 1);
-		grid.attach (title_entry, 1, 0, 5, 1);
-
-		var author_label = new Label ("<b>Author</b>");
-		author_label.set_use_markup (true);
-		grid.attach (author_label, 0, 1, 1, 1);
-		grid.attach (author_entry, 1, 1, 5, 1);
-
-		var subject_label = new Label ("<b>Subject</b>");
-		subject_label.set_use_markup (true);
-		grid.attach (subject_label, 0, 2, 1, 1);
-		grid.attach (subject_entry, 1, 2, 5, 1);
-
 		var keywords_label = new Label ("<b>Keywords</b>");
 		keywords_label.set_use_markup (true);
 		grid.attach (keywords_label, 0, 3, 1, 1);
 		grid.attach (keywords_entry, 1, 3, 5, 1);
 
+		/* creation date */
 		var creation_label = new Label ("<b>Created</b>");
 		creation_label.set_use_markup (true);
 		grid.attach (creation_label, 0, 4, 1, 1);
-
 		this.creation_date_btn = new Button.with_label ("YYYY-MM-DD");
 		grid.attach (this.creation_date_btn, 1, 4, 2, 1);
 		this.creation_date_btn.clicked.connect (on_date_clicked);
-
 		this.creation_hour_btn = new SpinButton.with_range (0, 23, 1);
 		this.creation_hour_btn.set_tooltip_text ("hours");
 		grid.attach (creation_hour_btn, 3, 4, 1, 1);
@@ -141,14 +122,13 @@ public class Pdftag : ApplicationWindow {
 		this.creation_sec_btn.set_tooltip_text ("seconds");
 		grid.attach (creation_sec_btn, 5, 4, 1, 1);
 
+		/* modification date */
 		var mod_label = new Label ("<b>Modified</b>");
 		mod_label.set_use_markup (true);
 		grid.attach (mod_label, 0, 5, 1, 1);
-
 		this.mod_date_btn = new Button.with_label ("YYYY-MM-DD");
 		grid.attach (mod_date_btn, 1, 5, 2, 1);
 		mod_date_btn.clicked.connect (on_date_clicked);
-
 		this.mod_hour_btn = new SpinButton.with_range (0, 23, 1);
 		this.mod_hour_btn.set_tooltip_text ("hours");
 		grid.attach (mod_hour_btn, 3, 5, 1, 1);
@@ -159,16 +139,15 @@ public class Pdftag : ApplicationWindow {
 		this.mod_sec_btn.set_tooltip_text ("seconds");
 		grid.attach (mod_sec_btn, 5, 5, 1, 1);
 
-		check = new CheckButton.with_label ("Overwrite");
-		grid.attach (check, 1, 6, 1, 1);
-
-		grid.attach (button, 5, 6, 1, 1);
-
-		grid.set_column_spacing (10);
-		grid.set_row_spacing (10);
-		grid.set_column_homogeneous (true);
-
+		/* overwrite checkbox */
+		this.check = new CheckButton.with_label ("Overwrite");
 		check.toggled.connect (on_toggled);
+		grid.attach (this.check, 1, 6, 1, 1);
+
+		/* tag button */
+		this.tag_btn = new Gtk.Button.with_label ("Tag");
+		this.tag_btn.clicked.connect (on_tag);
+		grid.attach (tag_btn, 5, 6, 1, 1);
 
 		this.add (grid);
 	}
