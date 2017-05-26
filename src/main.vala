@@ -44,6 +44,7 @@ public class Pdftag : ApplicationWindow {
 		this.window_position = Gtk.WindowPosition.CENTER;
 
 		var open_button = new Button.from_icon_name ("document-open-symbolic", IconSize.SMALL_TOOLBAR);
+		open_button.set_tooltip_text ("Select a PDF");
 		open_button.clicked.connect (on_open_clicked);
 		header.add (open_button);
 
