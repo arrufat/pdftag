@@ -151,18 +151,6 @@ public class Pdftag : ApplicationWindow {
 		grid.attach (creator_entry, 1, row, 5, 1);
 		row++;
 
-		/* information */
-		var info_label = new Label ("<b>Information</b>");
-		info_label.set_use_markup (true);
-		grid.attach (info_label, 0, row, 1, 1);
-
-		this.format_label = new Label ("Format: N/A");
-		grid.attach (this.format_label, 1, row, 1, 1);
-
-		this.pages_label = new Label ("Pages: N/A");
-		grid.attach (this.pages_label, 2, row, 1, 1);
-		row++;
-
 		/* creation date */
 		var creation_label = new Label ("<b>Created</b>");
 		creation_label.set_use_markup (true);
@@ -211,6 +199,18 @@ public class Pdftag : ApplicationWindow {
 		this.mod_hour_btn.set_value (double.parse (mod_date.format ("%H")));
 		this.mod_min_btn.set_value (double.parse (mod_date.format ("%M")));
 		this.mod_sec_btn.set_value (double.parse (mod_date.format ("%S")));
+		row++;
+
+		/* information */
+		var info_label = new Label ("<b>Information</b>");
+		info_label.set_use_markup (true);
+		grid.attach (info_label, 0, row, 1, 1);
+
+		this.format_label = new Label ("Format: N/A");
+		grid.attach (this.format_label, 1, row, 1, 1);
+
+		this.pages_label = new Label ("Pages: N/A");
+		grid.attach (this.pages_label, 2, row, 1, 1);
 		row++;
 
 		/* overwrite checkbox */
