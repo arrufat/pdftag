@@ -254,6 +254,9 @@ public class Pdftag : ApplicationWindow {
 	private void on_date_clicked (Button btn) {
 		var popover = new Popover (btn);
 		var calendar = new Calendar ();
+		var date_parse = btn.label.split ("-", 3);
+		calendar.select_month (int.parse (date_parse[1]) - 1, int.parse (date_parse[0]));
+		calendar.select_day (int.parse (date_parse[2]));
 		popover.add (calendar);
 		calendar.day_selected.connect (() => {
 			var date = "%04d-%02d-%02d".printf (calendar.year, calendar.month + 1, calendar.day);
