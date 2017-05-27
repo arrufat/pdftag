@@ -221,7 +221,7 @@ public class Pdftag : ApplicationWindow {
 		/* handle first argument -- it only works as an absolute path */
 		if (args[1] != null) {
 			this.document_path = "file://" + args[1];
-			fill_information ();
+			update_information ();
 		}
 
 	}
@@ -252,10 +252,10 @@ public class Pdftag : ApplicationWindow {
 		this.document_path = "file://" + filename;
 
 		/* update text entries with current metadata */
-		fill_information ();
+		update_information ();
 	}
 
-	private void fill_information () {
+	private void update_information () {
 		try {
 			var date_format = "%Y-%m-%d";
 			this.document = new Poppler.Document.from_file (this.document_path, null);
