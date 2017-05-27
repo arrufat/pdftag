@@ -44,7 +44,7 @@ To build Pdftag you need the following dependencies (including development files
 Then run
 
 ```
-meson --prefix=/usr/local (or your preferred installation prefix)
+meson build --prefix=/usr/local (or your preferred installation prefix)
 ninja -C build
 ninja -C build install
 ```
