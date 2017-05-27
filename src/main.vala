@@ -220,7 +220,8 @@ public class Pdftag : ApplicationWindow {
 
 		/* handle first argument -- it only works as an absolute path */
 		if (args[1] != null) {
-			this.document_path = "file://" + args[1];
+			this.filename = args[1];
+			this.document_path = "file://" + this.filename;
 			update_information ();
 		}
 
@@ -245,8 +246,6 @@ public class Pdftag : ApplicationWindow {
 		filter.add_mime_type ("image/pdf");
 		if (file_chooser.run () == ResponseType.ACCEPT) {
 			this.filename = file_chooser.get_filename ();
-			this.header.title = Path.get_basename (filename);
-			this.header.subtitle = filename.replace (Path.get_basename (filename), "");
 		}
 		file_chooser.destroy ();
 		this.document_path = "file://" + filename;
@@ -257,6 +256,8 @@ public class Pdftag : ApplicationWindow {
 
 	private void update_information () {
 		try {
+			this.header.title = Path.get_basename (filename);
+			this.header.subtitle = filename.replace (Path.get_basename (filename), "");
 			var date_format = "%Y-%m-%d";
 			this.document = new Poppler.Document.from_file (this.document_path, null);
 			this.title_entry.text = this.document.title ?? "";
