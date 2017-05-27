@@ -31,4 +31,7 @@ libpdftag = library('pdftag',
     vala_vapi: 'pdftag.vapi',
     install: false)
 
+install_data('LICENSE',
+    install_dir: '/usr/share/licenses/pdftag')
+
 subdir('data')
