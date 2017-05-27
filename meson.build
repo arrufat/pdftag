@@ -29,4 +29,6 @@ libpdftag = library('pdftag',
     dependencies: deps,
     vala_header: 'pdftag.h',
     vala_vapi: 'pdftag.vapi',
-    install: true)
+    install: false)
+
+subdir('data')
