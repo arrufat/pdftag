@@ -28,6 +28,12 @@ public class Pdftag : ApplicationWindow {
 	private SpinButton mod_min_btn;
 	private SpinButton mod_sec_btn;
 
+	private Button creation_now_btn;
+	private Button mod_now_btn;
+	private DateTime creation_date = new DateTime.now_local ();
+	private DateTime mod_date = new DateTime.now_local ();
+	private string date_format = "%Y-%m-%d";
+
 	private Button tag_btn;
 
 	public Pdftag (ref unowned string[] args) {
@@ -161,36 +167,50 @@ public class Pdftag : ApplicationWindow {
 		var creation_label = new Label ("<b>Created</b>");
 		creation_label.set_use_markup (true);
 		grid.attach (creation_label, 0, row, 1, 1);
-		this.creation_date_btn = new Button.with_label ("YYYY-MM-DD");
-		grid.attach (this.creation_date_btn, 1, row, 2, 1);
+		this.creation_date_btn = new Button.with_label (creation_date.format (this.date_format));
+		grid.attach (this.creation_date_btn, 1, row, 1, 1);
 		this.creation_date_btn.clicked.connect (on_date_clicked);
 		this.creation_hour_btn = new SpinButton.with_range (0, 23, 1);
 		this.creation_hour_btn.set_tooltip_text ("hours");
-		grid.attach (creation_hour_btn, 3, row, 1, 1);
+		grid.attach (creation_hour_btn, 2, row, 1, 1);
 		this.creation_min_btn = new SpinButton.with_range (0, 59, 1);
 		this.creation_min_btn.set_tooltip_text ("minutes");
-		grid.attach (creation_min_btn, 4, row, 1, 1);
+		grid.attach (creation_min_btn, 3, row, 1, 1);
 		this.creation_sec_btn = new SpinButton.with_range (0, 59, 1);
 		this.creation_sec_btn.set_tooltip_text ("seconds");
-		grid.attach (creation_sec_btn, 5, row, 1, 1);
+		grid.attach (creation_sec_btn, 4, row, 1, 1);
+		this.creation_now_btn = new Button.with_label ("Now");
+		grid.attach (this.creation_now_btn, 5, row, 1, 1);
+		this.creation_now_btn.clicked.connect (on_creation_now_clicked);
+
+		this.creation_hour_btn.set_value (double.parse (creation_date.format ("%H")));
+		this.creation_min_btn.set_value (double.parse (creation_date.format ("%M")));
+		this.creation_sec_btn.set_value (double.parse (creation_date.format ("%S")));
 		row++;
 
 		/* modification date */
 		var mod_label = new Label ("<b>Modified</b>");
 		mod_label.set_use_markup (true);
 		grid.attach (mod_label, 0, row, 1, 1);
-		this.mod_date_btn = new Button.with_label ("YYYY-MM-DD");
-		grid.attach (mod_date_btn, 1, row, 2, 1);
+		this.mod_date_btn = new Button.with_label (mod_date.format (this.date_format));
+		grid.attach (mod_date_btn, 1, row, 1, 1);
 		mod_date_btn.clicked.connect (on_date_clicked);
 		this.mod_hour_btn = new SpinButton.with_range (0, 23, 1);
 		this.mod_hour_btn.set_tooltip_text ("hours");
-		grid.attach (mod_hour_btn, 3, row, 1, 1);
+		grid.attach (mod_hour_btn, 2, row, 1, 1);
 		this.mod_min_btn = new SpinButton.with_range (0, 59, 1);
 		this.mod_min_btn.set_tooltip_text ("minutes");
-		grid.attach (mod_min_btn, 4, row, 1, 1);
+		grid.attach (mod_min_btn, 3, row, 1, 1);
 		this.mod_sec_btn = new SpinButton.with_range (0, 59, 1);
 		this.mod_sec_btn.set_tooltip_text ("seconds");
-		grid.attach (mod_sec_btn, 5, row, 1, 1);
+		grid.attach (mod_sec_btn, 4, row, 1, 1);
+		this.mod_now_btn = new Button.with_label ("Now");
+		grid.attach (this.mod_now_btn, 5, row, 1, 1);
+		this.mod_now_btn.clicked.connect (on_mod_now_clicked);
+
+		this.mod_hour_btn.set_value (double.parse (mod_date.format ("%H")));
+		this.mod_min_btn.set_value (double.parse (mod_date.format ("%M")));
+		this.mod_sec_btn.set_value (double.parse (mod_date.format ("%S")));
 		row++;
 
 		/* overwrite checkbox */
@@ -213,6 +233,22 @@ public class Pdftag : ApplicationWindow {
 			update_information ();
 		}
 
+	}
+
+	private void on_creation_now_clicked () {
+		this.creation_date = new DateTime.now_local ();
+		this.creation_date_btn.label = creation_date.format (this.date_format);
+		this.creation_hour_btn.set_value (double.parse (creation_date.format ("%H")));
+		this.creation_min_btn.set_value (double.parse (creation_date.format ("%M")));
+		this.creation_sec_btn.set_value (double.parse (creation_date.format ("%S")));
+	}
+
+	private void on_mod_now_clicked () {
+		this.mod_date = new DateTime.now_local ();
+		this.mod_date_btn.label = mod_date.format (this.date_format);
+		this.mod_hour_btn.set_value (double.parse (mod_date.format ("%H")));
+		this.mod_min_btn.set_value (double.parse (mod_date.format ("%M")));
+		this.mod_sec_btn.set_value (double.parse (mod_date.format ("%S")));
 	}
 
 	private void on_date_clicked (Button btn) {
@@ -246,7 +282,6 @@ public class Pdftag : ApplicationWindow {
 		try {
 			this.header.title = Path.get_basename (filename);
 			this.header.subtitle = filename.replace (Path.get_basename (filename), "");
-			var date_format = "%Y-%m-%d";
 			this.document = new Poppler.Document.from_file (this.document_path, null);
 			this.title_entry.text = this.document.title ?? "";
 			this.author_entry.text = this.document.author ?? "";
@@ -257,14 +292,14 @@ public class Pdftag : ApplicationWindow {
 			this.format_label.label = "Format: " + this.document.get_pdf_version_string ();
 			this.pages_label.label = "Pages: " + this.document.get_n_pages ().to_string ();
 
-			var creation_date = new DateTime.from_unix_local ((int64) this.document.creation_date);
-			this.creation_date_btn.label = creation_date.format (date_format);
+			this.creation_date = new DateTime.from_unix_local ((int64) this.document.creation_date);
+			this.creation_date_btn.label = creation_date.format (this.date_format);
 			this.creation_hour_btn.set_value (double.parse (creation_date.format ("%H")));
 			this.creation_min_btn.set_value (double.parse (creation_date.format ("%M")));
 			this.creation_sec_btn.set_value (double.parse (creation_date.format ("%S")));
 
-			var mod_date = new DateTime.from_unix_local ((int64) this.document.mod_date);
-			this.mod_date_btn.label = mod_date.format (date_format);
+			this.mod_date = new DateTime.from_unix_local ((int64) this.document.mod_date);
+			this.mod_date_btn.label = mod_date.format (this.date_format);
 			this.mod_hour_btn.set_value (double.parse (mod_date.format ("%H")));
 			this.mod_min_btn.set_value (double.parse (mod_date.format ("%M")));
 			this.mod_sec_btn.set_value (double.parse (mod_date.format ("%S")));
@@ -294,7 +329,7 @@ public class Pdftag : ApplicationWindow {
 
 				// date parsing
 				var creation_date_raw = this.creation_date_btn.label.split ("-", 3);
-				var creation_date = new DateTime.local (
+				this.creation_date = new DateTime.local (
 					int.parse(creation_date_raw[0]), // year
 					int.parse(creation_date_raw[1]), // month
 					int.parse(creation_date_raw[2]), // day
@@ -303,7 +338,7 @@ public class Pdftag : ApplicationWindow {
 					this.creation_sec_btn.get_value ()
 					);
 				var mod_date_raw = this.mod_date_btn.label.split ("-", 3);
-				var mod_date = new DateTime.local (
+				this.mod_date = new DateTime.local (
 					int.parse(mod_date_raw[0]), // year
 					int.parse(mod_date_raw[1]), // month
 					int.parse(mod_date_raw[2]), // day
