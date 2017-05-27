@@ -226,6 +226,8 @@ public class Pdftag : ApplicationWindow {
 
 		this.add (grid);
 
+		this.add_accels ();
+
 		/* handle first argument -- it only works as an absolute path */
 		if (args[1] != null) {
 			this.filename = args[1];
@@ -233,6 +235,21 @@ public class Pdftag : ApplicationWindow {
 			update_information ();
 		}
 
+	}
+
+	[Signal (action = true)]
+	private signal void open_file_dialog ();
+
+	[Signal (action = true)]
+	private signal void quit_app ();
+
+	private void add_accels () {
+		var accel_group = new AccelGroup ();
+		this.add_accel_group (accel_group);
+		this.open_file_dialog.connect (on_open_clicked);
+		this.quit_app.connect (Gtk.main_quit);
+		this.add_accelerator ("open_file_dialog", accel_group, Gdk.keyval_from_name ("o"), Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
+		this.add_accelerator ("quit_app", accel_group, Gdk.keyval_from_name ("q"), Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
 	}
 
 	private void on_creation_now_clicked () {
