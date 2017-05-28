@@ -11,7 +11,7 @@ endif
 glib = dependency('glib-2.0')
 gobject = dependency('gobject-2.0')
 gtk = dependency('gtk+-3.0')
-poppler = dependency('poppler-glib')
+poppler = dependency('poppler-glib', version: '>=0.46')
 
 deps = [glib, gobject, gtk, poppler]
 
