@@ -3,7 +3,7 @@ using GLib;
 using Gtk;
 
 public class Pdftag : ApplicationWindow {
-	private string filename;
+	private File pdf_file;
 	private Poppler.Document document;
 	private Entry title_entry;
 	private Entry author_entry;
@@ -15,7 +15,6 @@ public class Pdftag : ApplicationWindow {
 	private Label pages_label;
 	private HeaderBar header;
 	private CheckButton check;
-	private string document_path;
 	private bool overwrite = false;
 
 	private Button creation_date_btn;
@@ -230,8 +229,7 @@ public class Pdftag : ApplicationWindow {
 
 		/* handle first argument -- it only works as an absolute path */
 		if (args[1] != null) {
-			this.filename = args[1];
-			this.document_path = "file://" + this.filename;
+			this.pdf_file = File.new_for_path (args[1]);
 			update_information ();
 		}
 
@@ -289,10 +287,9 @@ public class Pdftag : ApplicationWindow {
 		file_chooser.set_filter (filter);
 		filter.add_mime_type ("image/pdf");
 		if (file_chooser.run () == ResponseType.ACCEPT) {
-			this.filename = file_chooser.get_filename ();
+			this.pdf_file = file_chooser.get_file ();
 		}
 		file_chooser.destroy ();
-		this.document_path = "file://" + filename;
 
 		/* update text entries with current metadata */
 		update_information ();
@@ -300,9 +297,10 @@ public class Pdftag : ApplicationWindow {
 
 	private void update_information () {
 		try {
-			this.header.title = Path.get_basename (filename);
-			this.header.subtitle = filename.replace (Path.get_basename (filename), "");
-			this.document = new Poppler.Document.from_file (this.document_path, null);
+			var base_name = Path.get_basename (pdf_file.get_path ());
+			this.header.title = base_name;
+			this.header.subtitle = this.pdf_file.get_parse_name ().replace (base_name, "");
+			this.document = new Poppler.Document.from_file (this.pdf_file.get_uri (), null);
 			this.title_entry.text = this.document.title ?? "";
 			this.author_entry.text = this.document.author ?? "";
 			this.subject_entry.text = this.document.subject ?? "";
@@ -339,7 +337,7 @@ public class Pdftag : ApplicationWindow {
 	}
 
 	private void on_tag () {
-			if (this.document_path != null) {
+			if (this.pdf_file != null) {
 				this.document.title = this.title_entry.text;
 				this.document.author = this.author_entry.text;
 				this.document.subject = this.subject_entry.text;
@@ -372,10 +370,10 @@ public class Pdftag : ApplicationWindow {
 				// save the modified document
 				try {
 					FileIOStream iostream;
-					var tmp_pdf = File.new_tmp ("tmp-XXXXXX.pdf", out iostream);
-					this.document.save("file://" + tmp_pdf.get_path ());
+					var tmp_pdf = File.new_tmp ("pdftag-tmp-XXXXXX.pdf", out iostream);
+					this.document.save(tmp_pdf.get_uri ());
 					if (overwrite) {
-						var final_pdf = File.new_for_commandline_arg (this.document_path);
+						var final_pdf = File.new_for_commandline_arg (this.pdf_file.get_path ());
 						tmp_pdf.move (final_pdf, FileCopyFlags.OVERWRITE, null, null);
 					}
 				} catch (Error e) {
