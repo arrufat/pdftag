@@ -219,7 +219,7 @@ public class Pdftag : ApplicationWindow {
 
 		/* tag button */
 		this.tag_btn = new Gtk.Button.with_label ("Tag");
-		this.tag_btn.clicked.connect (on_tag);
+		this.tag_btn.clicked.connect (write_information);
 		grid.attach (tag_btn, 5, row, 1, 1);
 		row++;
 
@@ -230,7 +230,7 @@ public class Pdftag : ApplicationWindow {
 		/* handle first argument -- it only works as an absolute path */
 		if (args[1] != null) {
 			this.pdf_file = File.new_for_path (args[1]);
-			update_information ();
+			read_information ();
 		}
 
 	}
@@ -292,14 +292,16 @@ public class Pdftag : ApplicationWindow {
 		file_chooser.destroy ();
 
 		/* update text entries with current metadata */
-		update_information ();
+		if (this.pdf_file != null) {
+			read_information ();
+		}
 	}
 
-	private void update_information () {
+	private void read_information () {
 		try {
 			var base_name = Path.get_basename (pdf_file.get_path ());
 			this.header.title = base_name;
-			this.header.subtitle = this.pdf_file.get_parse_name ().replace (base_name, "");
+			this.header.subtitle = this.pdf_file.get_path ().replace (base_name, "");
 			this.document = new Poppler.Document.from_file (this.pdf_file.get_uri (), null);
 			this.title_entry.text = this.document.title ?? "";
 			this.author_entry.text = this.document.author ?? "";
@@ -336,7 +338,7 @@ public class Pdftag : ApplicationWindow {
 		}
 	}
 
-	private void on_tag () {
+	private void write_information () {
 			if (this.pdf_file != null) {
 				this.document.title = this.title_entry.text;
 				this.document.author = this.author_entry.text;
