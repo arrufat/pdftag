@@ -34,6 +34,8 @@ public class Pdftag : ApplicationWindow {
 	private string date_format = "%Y-%m-%d";
 
 	private Button tag_btn;
+	private Button view_btn;
+	private AppInfo viewer;
 
 	public Pdftag (ref unowned string[] args) {
 
@@ -217,6 +219,13 @@ public class Pdftag : ApplicationWindow {
 		check.toggled.connect (on_toggled);
 		grid.attach (this.check, 1, row, 1, 1);
 
+		/* view button */
+		viewer = AppInfo.get_default_for_type ("image/pdf", true);
+		var viewer_name = viewer.get_name ();
+		this.view_btn = new Gtk.Button.with_label ("Open with " + viewer_name);
+		this.view_btn.clicked.connect (view_document);
+		grid.attach (view_btn, 3, row, 2, 1);
+
 		/* tag button */
 		this.tag_btn = new Gtk.Button.with_label ("Tag");
 		this.tag_btn.clicked.connect (write_information);
@@ -335,6 +344,20 @@ public class Pdftag : ApplicationWindow {
 		} else {
 			overwrite = false;
 			message ("Original file will be kept");
+		}
+	}
+
+	private void view_document () {
+		if (this.pdf_file != null) {
+			var pdf_list = new List<File> ();
+			pdf_list.append (this.pdf_file);
+			try {
+				this.viewer.launch (pdf_list, null);
+			} catch (Error e) {
+				message (e.message);
+			}
+		} else {
+			message ("No document was selected!");
 		}
 	}
 
