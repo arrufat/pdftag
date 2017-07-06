@@ -8,6 +8,11 @@ if get_option('buildtype') == 'release'
     endif
 endif
 
+if build_machine.system() == 'windows'
+    add_global_arguments('-mwindows', language: 'c')
+endif
+
+
 glib = dependency('glib-2.0')
 gobject = dependency('gobject-2.0')
 gtk = dependency('gtk+-3.0')
@@ -23,13 +28,6 @@ pdftag = executable('pdftag',
     sources: srcs,
     dependencies: deps,
     install: true)
-
-libpdftag = library('pdftag',
-    sources: srcs,
-    dependencies: deps,
-    vala_header: 'pdftag.h',
-    vala_vapi: 'pdftag.vapi',
-    install: false)
 
 install_data('LICENSE',
     install_dir: '/usr/share/licenses/pdftag')

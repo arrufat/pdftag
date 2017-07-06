@@ -14,8 +14,6 @@ public class Pdftag : ApplicationWindow {
 	private Label format_label;
 	private Label pages_label;
 	private HeaderBar header;
-	private CheckButton check;
-	private bool overwrite = false;
 
 	private Button creation_date_btn;
 	private SpinButton creation_hour_btn;
@@ -39,10 +37,10 @@ public class Pdftag : ApplicationWindow {
 
 	public Pdftag (ref unowned string[] args) {
 
-		header = new HeaderBar ();
-		header.title = "pdftag";
-		header.subtitle = "Add or modify metadata";
-		header.set_show_close_button (true);
+		this.header = new HeaderBar ();
+		this.header.title = "pdftag";
+		this.header.subtitle = "Add or modify metadata";
+		this.header.set_show_close_button (true);
 
 		this.set_titlebar (header);
 		this.destroy.connect (Gtk.main_quit);
@@ -53,7 +51,7 @@ public class Pdftag : ApplicationWindow {
 		var open_button = new Button.from_icon_name ("document-open-symbolic", IconSize.SMALL_TOOLBAR);
 		open_button.set_tooltip_text ("Select a PDF");
 		open_button.clicked.connect (on_open_clicked);
-		header.add (open_button);
+		this.header.add (open_button);
 
 		/* grid configuration */
 		var grid = new Grid ();
@@ -212,12 +210,6 @@ public class Pdftag : ApplicationWindow {
 
 		this.pages_label = new Label ("Pages: N/A");
 		grid.attach (this.pages_label, 2, row, 1, 1);
-		row++;
-
-		/* overwrite checkbox */
-		this.check = new CheckButton.with_label ("Overwrite");
-		check.toggled.connect (on_toggled);
-		grid.attach (this.check, 1, row, 1, 1);
 
 		/* view button */
 		viewer = AppInfo.get_default_for_type ("image/pdf", true);
@@ -230,7 +222,6 @@ public class Pdftag : ApplicationWindow {
 		this.tag_btn = new Gtk.Button.with_label ("Tag");
 		this.tag_btn.clicked.connect (write_information);
 		grid.attach (tag_btn, 5, row, 1, 1);
-		row++;
 
 		this.add (grid);
 
@@ -293,8 +284,13 @@ public class Pdftag : ApplicationWindow {
 		var file_chooser = new FileChooserDialog (
 			"Open file", this, FileChooserAction.OPEN, "_Cancel", ResponseType.CANCEL, "_Open", ResponseType.ACCEPT);
 		var filter = new FileFilter ();
-		file_chooser.set_filter (filter);
-		filter.add_mime_type ("image/pdf");
+		filter.set_filter_name ("PDF files");
+		filter.add_pattern ("*.pdf");
+		file_chooser.add_filter (filter);
+		filter = new FileFilter ();
+		filter.set_filter_name ("All files");
+		filter.add_pattern ("*");
+		file_chooser.add_filter (filter);
 		if (file_chooser.run () == ResponseType.ACCEPT) {
 			this.pdf_file = file_chooser.get_file ();
 		}
@@ -334,16 +330,6 @@ public class Pdftag : ApplicationWindow {
 			this.mod_sec_btn.set_value (double.parse (mod_date.format ("%S")));
 		} catch (Error e) {
 			print ("%s\n", e.message);
-		}
-	}
-
-	private void on_toggled () {
-		if (this.check.active) {
-			overwrite = true;
-			message ("Output will be overwritten");
-		} else {
-			overwrite = false;
-			message ("Original file will be kept");
 		}
 	}
 
@@ -394,13 +380,14 @@ public class Pdftag : ApplicationWindow {
 
 				// save the modified document
 				try {
-					FileIOStream iostream;
-					var tmp_pdf = File.new_tmp ("pdftag-tmp-XXXXXX.pdf", out iostream);
-					this.document.save(tmp_pdf.get_uri ());
-					if (overwrite) {
-						var final_pdf = File.new_for_commandline_arg (this.pdf_file.get_path ());
-						tmp_pdf.move (final_pdf, FileCopyFlags.OVERWRITE, null, null);
-					}
+					var tmp_file = File.new_for_path (this.header.subtitle + "tmp.pdf");
+					this.document.save(tmp_file.get_uri ());
+					uint8[] contents;
+					string etag;
+					tmp_file.load_contents (null, out contents, out etag);
+					var pdf_stream = FileStream.open (this.pdf_file.get_path (), "w");
+					pdf_stream.write (contents);
+					tmp_file.delete ();
 				} catch (Error e) {
 					print ("%s\n", e.message);
 				}
@@ -408,26 +395,6 @@ public class Pdftag : ApplicationWindow {
 				message ("No document was selected!");
 			}
 	}
-
-	private static void remove_dir_recursively (string path) {
-		string content;
-		try {
-			var directory = Dir.open (path);
-			while ((content = directory.read_name ()) != null) {
-				var content_path = path + Path.DIR_SEPARATOR_S + content;
-				if (FileUtils.test (content_path + Path.DIR_SEPARATOR_S + content, FileTest.IS_DIR)) {
-					remove_dir_recursively (content_path);
-					FileUtils.remove (content_path);
-				} else {
-					FileUtils.remove (content_path);
-				}
-			}
-			FileUtils.remove (path);
-		} catch (FileError e) {
-			error ("%s\n", e.message);
-		}
-	}
-
 }
 
 int main (string[] args) {
