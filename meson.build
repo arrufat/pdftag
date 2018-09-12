@@ -1,17 +1,11 @@
 project('pdftag', ['vala', 'c'],
     default_options: ['buildtype=release', 'default_library=shared'],
-    version: '0.1.0')
-
-if get_option('buildtype') == 'release'
-    if meson.get_compiler('c').has_argument('-march=native')
-        add_global_arguments('-march=native', language: 'c')
-    endif
-endif
+    version: '1.0.5',
+    license: 'GPL3+')
 
 if build_machine.system() == 'windows'
     add_global_arguments('-mwindows', language: 'c')
 endif
-
 
 glib = dependency('glib-2.0')
 gobject = dependency('gobject-2.0')
@@ -28,8 +22,5 @@ pdftag = executable('pdftag',
     sources: srcs,
     dependencies: deps,
     install: true)
-
-install_data('LICENSE',
-    install_dir: '/usr/share/licenses/pdftag')
 
 subdir('data')
