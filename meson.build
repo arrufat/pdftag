@@ -22,5 +22,8 @@ pdftag = executable('pdftag',
     sources: srcs,
     dependencies: deps,
     install: true)
+    
+install_data('LICENSE',
+    install_dir: 'share/licenses/pdftag')
 
 subdir('data')
