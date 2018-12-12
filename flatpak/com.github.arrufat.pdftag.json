@@ -1,0 +1,43 @@
+{
+  "id" : "com.github.arrufat.pdftag",
+  "runtime" : "org.gnome.Platform",
+  "runtime-version" : "3.28",
+  "sdk" : "org.gnome.Sdk",
+  "command" : "pdftag",
+  "rename-desktop-file": "pdftag.desktop",
+  "modules" : [
+    {
+      "name" : "poppler",
+      "buildsystem" : "cmake",
+      "config-opts" : [
+        "-DENABLE_LIBOPENJPEG:STRING=none"
+      ],
+      "sources" : [
+        {
+          "url" : "https://anongit.freedesktop.org/git/poppler/poppler.git",
+          "type" : "git"
+        }
+      ]
+    },
+    {
+      "name" : "pdftag",
+      "buildsystem" : "meson",
+      "sources" : [
+        {
+          "url" : "https://github.com/arrufat/pdftag",
+          "type" : "git"
+        }
+      ]
+    }
+  ],
+  "cleanup" : [
+    "/include",
+    "/lib/pkgconfig"
+  ],
+  "finish-args" : [
+    "--socket=wayland",
+    "--socket=x11",
+    "--share=ipc",
+    "--filesystem=home"
+  ]
+}
