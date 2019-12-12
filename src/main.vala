@@ -220,6 +220,7 @@ public class Pdftag : ApplicationWindow {
 
 		/* tag button */
 		this.tag_btn = new Gtk.Button.with_label ("Tag");
+        this.tag_btn.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION);
 		this.tag_btn.clicked.connect (write_information);
 		grid.attach (tag_btn, 5, row, 1, 1);
 
