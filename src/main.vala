@@ -282,8 +282,8 @@ public class Pdftag : ApplicationWindow {
 	}
 
 	private void on_open_clicked () {
-		var file_chooser = new FileChooserDialog (
-			"Open file", this, FileChooserAction.OPEN, "_Cancel", ResponseType.CANCEL, "_Open", ResponseType.ACCEPT);
+		var file_chooser = new FileChooserNative (
+			"Open file", this, FileChooserAction.OPEN, "_Open", "_Cancel");
 		var filter = new FileFilter ();
 		filter.set_filter_name ("PDF files");
 		filter.add_pattern ("*.pdf");
