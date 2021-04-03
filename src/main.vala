@@ -318,13 +318,13 @@ public class Pdftag : ApplicationWindow {
 			this.format_label.label = "Format: " + this.document.get_pdf_version_string ();
 			this.pages_label.label = "Pages: " + this.document.get_n_pages ().to_string ();
 
-			this.creation_date = new DateTime.from_unix_local ((int64) this.document.creation_date);
+			this.creation_date = new DateTime.from_unix_local ((int64) this.document.creation_datetime);
 			this.creation_date_btn.label = creation_date.format (this.date_format);
 			this.creation_hour_btn.set_value (double.parse (creation_date.format ("%H")));
 			this.creation_min_btn.set_value (double.parse (creation_date.format ("%M")));
 			this.creation_sec_btn.set_value (double.parse (creation_date.format ("%S")));
 
-			this.mod_date = new DateTime.from_unix_local ((int64) this.document.mod_date);
+			this.mod_date = new DateTime.from_unix_local ((int64) this.document.mod_datetime);
 			this.mod_date_btn.label = mod_date.format (this.date_format);
 			this.mod_hour_btn.set_value (double.parse (mod_date.format ("%H")));
 			this.mod_min_btn.set_value (double.parse (mod_date.format ("%M")));
@@ -376,8 +376,8 @@ public class Pdftag : ApplicationWindow {
 					this.mod_min_btn.get_value_as_int (),
 					this.mod_sec_btn.get_value ()
 					);
-				this.document.creation_date = (int) creation_date.to_unix ();
-				this.document.mod_date = (int) mod_date.to_unix ();
+				this.document.creation_datetime = creation_date;
+				this.document.mod_datetime = mod_date;
 
 				// save the modified document
 				try {
