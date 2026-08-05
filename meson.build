@@ -1,28 +1,21 @@
 project('pdftag', ['vala', 'c'],
-    default_options: ['buildtype=release', 'default_library=shared'],
-    version: '1.0.5',
+    default_options: ['buildtype=release'],
+    version: '2.0.0',
     license: 'GPL3+')
 
-if build_machine.system() == 'windows'
-    add_global_arguments('-mwindows', language: 'c')
-endif
-
-glib = dependency('glib-2.0')
-gobject = dependency('gobject-2.0')
-gtk = dependency('gtk+-3.0')
-poppler = dependency('poppler-glib', version: '>=0.46')
-
-deps = [glib, gobject, gtk, poppler]
-
-inc = include_directories('src')
-
-srcs = ['src/main.vala']
+deps = [
+    dependency('glib-2.0'),
+    dependency('gobject-2.0'),
+    dependency('gtk4', version: '>=4.20'),
+    dependency('libadwaita-1', version: '>=1.6'),
+    dependency('poppler-glib', version: '>=20.09'),
+]
 
 pdftag = executable('pdftag',
-    sources: srcs,
+    sources: ['src/main.vala'],
     dependencies: deps,
     install: true)
-    
+
 install_data('LICENSE',
     install_dir: 'share/licenses/pdftag')
 

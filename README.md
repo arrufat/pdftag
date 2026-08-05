@@ -11,7 +11,7 @@ Other more complex solutions exist to manipulate PDFs, but they may have depende
 
 This project makes use of the [poppler] library for all the PDF information reading and writing.
 
-It is written in [Vala] and [GTK+], meaning it is fast and has a small memory footprint.
+It is written in [Vala] using [GTK4] and [libadwaita], meaning it is fast, has a small memory footprint and integrates nicely with the GNOME desktop.
 
 ## Features
 
@@ -38,7 +38,8 @@ To build Pdftag you need the following dependencies (including development files
 - meson (build only)
 - ninja (build only)
 - vala (build only)
-- gtk3
+- gtk4 (>= 4.20)
+- libadwaita (>= 1.6)
 - poppler-glib
 
 Then run
@@ -50,5 +51,6 @@ ninja -C build install
 ```
 
 [poppler]:https://poppler.freedesktop.org/
-[Vala]:https://wiki.gnome.org/Projects/Vala/
-[GTK+]:https://www.gtk.org/
+[Vala]:https://vala.dev/
+[GTK4]:https://www.gtk.org/
+[libadwaita]:https://gnome.pages.gitlab.gnome.org/libadwaita/

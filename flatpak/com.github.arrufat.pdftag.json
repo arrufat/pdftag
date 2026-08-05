@@ -1,21 +1,27 @@
 {
   "id" : "com.github.arrufat.pdftag",
   "runtime" : "org.gnome.Platform",
-  "runtime-version" : "3.28",
+  "runtime-version" : "49",
   "sdk" : "org.gnome.Sdk",
   "command" : "pdftag",
-  "rename-desktop-file": "pdftag.desktop",
   "modules" : [
     {
       "name" : "poppler",
       "buildsystem" : "cmake",
       "config-opts" : [
-        "-DENABLE_LIBOPENJPEG:STRING=none"
+        "-DENABLE_LIBOPENJPEG:STRING=none",
+        "-DENABLE_GLIB=ON",
+        "-DENABLE_QT5=OFF",
+        "-DENABLE_QT6=OFF",
+        "-DENABLE_UTILS=OFF",
+        "-DENABLE_CPP=OFF",
+        "-DENABLE_BOOST=OFF"
       ],
       "sources" : [
         {
-          "url" : "https://anongit.freedesktop.org/git/poppler/poppler.git",
-          "type" : "git"
+          "url" : "https://gitlab.freedesktop.org/poppler/poppler.git",
+          "type" : "git",
+          "tag" : "poppler-25.01.0"
         }
       ]
     },
@@ -36,7 +42,7 @@
   ],
   "finish-args" : [
     "--socket=wayland",
-    "--socket=x11",
+    "--socket=fallback-x11",
     "--share=ipc",
     "--filesystem=home"
   ]

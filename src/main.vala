@@ -1,409 +1,381 @@
-// modules: gtk+-3.0 poppler-glib
-using GLib;
-using Gtk;
+// modules: gtk4 libadwaita-1 poppler-glib
 
-public class Pdftag : ApplicationWindow {
-	private File pdf_file;
-	private Poppler.Document document;
-	private Entry title_entry;
-	private Entry author_entry;
-	private Entry subject_entry;
-	private Entry keywords_entry;
-	private Entry producer_entry;
-	private Entry creator_entry;
-	private Label format_label;
-	private Label pages_label;
-	private HeaderBar header;
+/* not deprecated in C, but only bound inside the deprecated Gtk.StyleContext class */
+[CCode (cheader_filename = "gtk/gtk.h", cname = "gtk_style_context_add_provider_for_display")]
+extern void add_style_provider_for_display (Gdk.Display display, Gtk.StyleProvider provider, uint priority);
 
-	private Button creation_date_btn;
-	private SpinButton creation_hour_btn;
-	private SpinButton creation_min_btn;
-	private SpinButton creation_sec_btn;
+public class Pdftag.DateRow : Adw.ActionRow {
+	public DateTime date;
 
-	private Button mod_date_btn;
-	private SpinButton mod_hour_btn;
-	private SpinButton mod_min_btn;
-	private SpinButton mod_sec_btn;
+	private Gtk.MenuButton menu_btn;
+	private Gtk.Calendar calendar;
+	private Gtk.SpinButton hour_btn;
+	private Gtk.SpinButton min_btn;
+	private Gtk.SpinButton sec_btn;
+	private bool updating = false;
 
-	private Button creation_now_btn;
-	private Button mod_now_btn;
-	private DateTime creation_date = new DateTime.now_local ();
-	private DateTime mod_date = new DateTime.now_local ();
-	private string date_format = "%Y-%m-%d";
+	private const string DATE_FORMAT = "%Y-%m-%d %H:%M:%S";
 
-	private Button tag_btn;
-	private Button view_btn;
-	private AppInfo viewer;
+	public DateRow (string title) {
+		this.title = title;
+		this.date = new DateTime.now_local ();
 
-	public Pdftag (ref unowned string[] args) {
+		this.calendar = new Gtk.Calendar ();
 
-		this.header = new HeaderBar ();
-		this.header.title = "pdftag";
-		this.header.subtitle = "Add or modify metadata";
-		this.header.set_show_close_button (true);
+		this.hour_btn = new Gtk.SpinButton.with_range (0, 23, 1);
+		this.hour_btn.set_tooltip_text ("hours");
+		this.min_btn = new Gtk.SpinButton.with_range (0, 59, 1);
+		this.min_btn.set_tooltip_text ("minutes");
+		this.sec_btn = new Gtk.SpinButton.with_range (0, 59, 1);
+		this.sec_btn.set_tooltip_text ("seconds");
 
-		this.set_titlebar (header);
-		this.destroy.connect (Gtk.main_quit);
-		this.resizable = false;
-		this.border_width = 10;
-		this.window_position = Gtk.WindowPosition.CENTER;
+		var time_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 6);
+		time_box.halign = Gtk.Align.CENTER;
+		time_box.append (this.hour_btn);
+		time_box.append (this.min_btn);
+		time_box.append (this.sec_btn);
 
-		var open_button = new Button.from_icon_name ("document-open-symbolic", IconSize.SMALL_TOOLBAR);
-		open_button.set_tooltip_text ("Select a PDF");
-		open_button.clicked.connect (on_open_clicked);
-		this.header.add (open_button);
+		var now_btn = new Gtk.Button.with_label ("Now");
 
-		/* grid configuration */
-		var grid = new Grid ();
-		grid.set_column_spacing (10);
-		grid.set_row_spacing (10);
-		grid.set_column_homogeneous (true);
-		var row = 0;
+		var box = new Gtk.Box (Gtk.Orientation.VERTICAL, 6);
+		box.append (this.calendar);
+		box.append (time_box);
+		box.append (now_btn);
 
-		/* title */
-		title_entry = new Entry ();
-		title_entry.set_placeholder_text ("Title");
-		title_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
-		title_entry.icon_press.connect ((pos, event) => {
-			if (pos == Gtk.EntryIconPosition.SECONDARY) {
-				title_entry.set_text ("");
-			}
+		var popover = new Gtk.Popover ();
+		popover.child = box;
+
+		this.menu_btn = new Gtk.MenuButton ();
+		this.menu_btn.popover = popover;
+		this.menu_btn.valign = Gtk.Align.CENTER;
+		this.menu_btn.label = this.date.format (DATE_FORMAT);
+		this.add_suffix (this.menu_btn);
+		this.activatable_widget = this.menu_btn;
+
+		this.calendar.day_selected.connect (this.on_changed);
+		this.hour_btn.value_changed.connect (this.on_changed);
+		this.min_btn.value_changed.connect (this.on_changed);
+		this.sec_btn.value_changed.connect (this.on_changed);
+		now_btn.clicked.connect (() => {
+			this.set_datetime (new DateTime.now_local ());
+			popover.popdown ();
 		});
-		var title_label = new Label ("<b>Title</b>");
-		title_label.set_use_markup (true);
-		grid.attach (title_label, 0, row, 1, 1);
-		grid.attach (title_entry, 1, row, 5, 1);
-		row++;
 
-		/* author */
-		author_entry = new Entry ();
-		author_entry.set_placeholder_text ("Author");
-		author_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
-		author_entry.icon_press.connect ((pos, event) => {
-			if (pos == Gtk.EntryIconPosition.SECONDARY) {
-				author_entry.set_text ("");
-			}
-		});
-		var author_label = new Label ("<b>Author</b>");
-		author_label.set_use_markup (true);
-		grid.attach (author_label, 0, row, 1, 1);
-		grid.attach (author_entry, 1, row, 5, 1);
-		row++;
+		this.set_datetime (this.date);
+	}
 
-		/* subject */
-		subject_entry = new Entry ();
-		subject_entry.set_placeholder_text ("Subject");
-		subject_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
-		subject_entry.icon_press.connect ((pos, event) => {
-			if (pos == Gtk.EntryIconPosition.SECONDARY) {
-				subject_entry.set_text ("");
-			}
-		});
-		var subject_label = new Label ("<b>Subject</b>");
-		subject_label.set_use_markup (true);
-		grid.attach (subject_label, 0, row, 1, 1);
-		grid.attach (subject_entry, 1, row, 5, 1);
-		row++;
+	public void set_datetime (DateTime dt) {
+		this.updating = true;
+		this.date = dt;
+		this.calendar.set_date (dt);
+		this.hour_btn.value = dt.get_hour ();
+		this.min_btn.value = dt.get_minute ();
+		this.sec_btn.value = dt.get_second ();
+		this.menu_btn.label = dt.format (DATE_FORMAT);
+		this.updating = false;
+	}
 
-		/* keywords */
-		keywords_entry = new Entry ();
-		keywords_entry.set_placeholder_text ("Keywords");
-		keywords_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
-		keywords_entry.icon_press.connect ((pos, event) => {
-			if (pos == Gtk.EntryIconPosition.SECONDARY) {
-				keywords_entry.set_text ("");
-			}
-		});
-		var keywords_label = new Label ("<b>Keywords</b>");
-		keywords_label.set_use_markup (true);
-		grid.attach (keywords_label, 0, row, 1, 1);
-		grid.attach (keywords_entry, 1, row, 5, 1);
-		row++;
-
-		/* producer */
-		producer_entry = new Entry ();
-		producer_entry.set_placeholder_text ("Producer");
-		producer_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
-		producer_entry.icon_press.connect ((pos, event) => {
-			if (pos == Gtk.EntryIconPosition.SECONDARY) {
-				producer_entry.set_text ("");
-			}
-		});
-		var producer_label = new Label ("<b>Producer</b>");
-		producer_label.set_use_markup (true);
-		grid.attach (producer_label, 0, row, 1, 1);
-		grid.attach (producer_entry, 1, row, 5, 1);
-		row++;
-
-		/* creator */
-		creator_entry = new Entry ();
-		creator_entry.set_placeholder_text ("Creator");
-		creator_entry.set_icon_from_icon_name (EntryIconPosition.SECONDARY, "edit-clear-symbolic");
-		creator_entry.icon_press.connect ((pos, event) => {
-			if (pos == Gtk.EntryIconPosition.SECONDARY) {
-				creator_entry.set_text ("");
-			}
-		});
-		var creator_label = new Label ("<b>Creator</b>");
-		creator_label.set_use_markup (true);
-		grid.attach (creator_label, 0, row, 1, 1);
-		grid.attach (creator_entry, 1, row, 5, 1);
-		row++;
-
-		/* creation date */
-		var creation_label = new Label ("<b>Created</b>");
-		creation_label.set_use_markup (true);
-		grid.attach (creation_label, 0, row, 1, 1);
-		this.creation_date_btn = new Button.with_label (creation_date.format (this.date_format));
-		grid.attach (this.creation_date_btn, 1, row, 1, 1);
-		this.creation_date_btn.clicked.connect (on_date_clicked);
-		this.creation_hour_btn = new SpinButton.with_range (0, 23, 1);
-		this.creation_hour_btn.set_tooltip_text ("hours");
-		grid.attach (creation_hour_btn, 2, row, 1, 1);
-		this.creation_min_btn = new SpinButton.with_range (0, 59, 1);
-		this.creation_min_btn.set_tooltip_text ("minutes");
-		grid.attach (creation_min_btn, 3, row, 1, 1);
-		this.creation_sec_btn = new SpinButton.with_range (0, 59, 1);
-		this.creation_sec_btn.set_tooltip_text ("seconds");
-		grid.attach (creation_sec_btn, 4, row, 1, 1);
-		this.creation_now_btn = new Button.with_label ("Now");
-		grid.attach (this.creation_now_btn, 5, row, 1, 1);
-		this.creation_now_btn.clicked.connect (on_creation_now_clicked);
-
-		this.creation_hour_btn.set_value (double.parse (creation_date.format ("%H")));
-		this.creation_min_btn.set_value (double.parse (creation_date.format ("%M")));
-		this.creation_sec_btn.set_value (double.parse (creation_date.format ("%S")));
-		row++;
-
-		/* modification date */
-		var mod_label = new Label ("<b>Modified</b>");
-		mod_label.set_use_markup (true);
-		grid.attach (mod_label, 0, row, 1, 1);
-		this.mod_date_btn = new Button.with_label (mod_date.format (this.date_format));
-		grid.attach (mod_date_btn, 1, row, 1, 1);
-		mod_date_btn.clicked.connect (on_date_clicked);
-		this.mod_hour_btn = new SpinButton.with_range (0, 23, 1);
-		this.mod_hour_btn.set_tooltip_text ("hours");
-		grid.attach (mod_hour_btn, 2, row, 1, 1);
-		this.mod_min_btn = new SpinButton.with_range (0, 59, 1);
-		this.mod_min_btn.set_tooltip_text ("minutes");
-		grid.attach (mod_min_btn, 3, row, 1, 1);
-		this.mod_sec_btn = new SpinButton.with_range (0, 59, 1);
-		this.mod_sec_btn.set_tooltip_text ("seconds");
-		grid.attach (mod_sec_btn, 4, row, 1, 1);
-		this.mod_now_btn = new Button.with_label ("Now");
-		grid.attach (this.mod_now_btn, 5, row, 1, 1);
-		this.mod_now_btn.clicked.connect (on_mod_now_clicked);
-
-		this.mod_hour_btn.set_value (double.parse (mod_date.format ("%H")));
-		this.mod_min_btn.set_value (double.parse (mod_date.format ("%M")));
-		this.mod_sec_btn.set_value (double.parse (mod_date.format ("%S")));
-		row++;
-
-		/* information */
-		var info_label = new Label ("<b>Information</b>");
-		info_label.set_use_markup (true);
-		grid.attach (info_label, 0, row, 1, 1);
-
-		this.format_label = new Label ("Format: N/A");
-		grid.attach (this.format_label, 1, row, 1, 1);
-
-		this.pages_label = new Label ("Pages: N/A");
-		grid.attach (this.pages_label, 2, row, 1, 1);
-
-		/* view button */
-		viewer = AppInfo.get_default_for_type ("image/pdf", true);
-		var viewer_name = viewer.get_name ();
-		this.view_btn = new Gtk.Button.with_label ("Open with " + viewer_name);
-		this.view_btn.clicked.connect (view_document);
-		grid.attach (view_btn, 3, row, 2, 1);
-
-		/* tag button */
-		this.tag_btn = new Gtk.Button.with_label ("Tag");
-		this.tag_btn.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION);
-		this.tag_btn.clicked.connect (write_information);
-		grid.attach (tag_btn, 5, row, 1, 1);
-
-		this.add (grid);
-
-		this.add_accels ();
-
-		/* handle first argument -- it only works as an absolute path */
-		if (args[1] != null) {
-			this.pdf_file = File.new_for_path (args[1]);
-			read_information ();
+	private void on_changed () {
+		if (this.updating) {
+			return;
 		}
+		var day = this.calendar.get_date ();
+		this.date = new DateTime.local (
+			day.get_year (),
+			day.get_month (),
+			day.get_day_of_month (),
+			this.hour_btn.get_value_as_int (),
+			this.min_btn.get_value_as_int (),
+			this.sec_btn.get_value_as_int ());
+		this.menu_btn.label = this.date.format (DATE_FORMAT);
+	}
+}
 
+public class Pdftag.Window : Adw.ApplicationWindow {
+	private File? pdf_file;
+	private Poppler.Document? document;
+
+	private Adw.WindowTitle window_title;
+	private Adw.ToastOverlay toast_overlay;
+	private SimpleAction tag_action;
+
+	private Adw.EntryRow title_row;
+	private Adw.EntryRow author_row;
+	private Adw.EntryRow subject_row;
+	private Adw.EntryRow keywords_row;
+	private Adw.EntryRow producer_row;
+	private Adw.EntryRow creator_row;
+
+	private DateRow creation_row;
+	private DateRow mod_row;
+
+	private Gtk.Label format_value;
+	private Gtk.Label pages_value;
+
+	private Adw.PreferencesGroup metadata_group;
+	private Adw.PreferencesGroup dates_group;
+	private Adw.ButtonRow view_row;
+	private AppInfo? viewer;
+
+	public Window (Gtk.Application app) {
+		Object (application: app, title: "pdftag", default_width: 480);
+
+		var open_action = new SimpleAction ("open", null);
+		open_action.activate.connect (() => this.on_open ());
+		this.add_action (open_action);
+
+		this.tag_action = new SimpleAction ("tag", null);
+		this.tag_action.set_enabled (false);
+		this.tag_action.activate.connect (() => this.write_information ());
+		this.add_action (this.tag_action);
+
+		this.window_title = new Adw.WindowTitle ("pdftag", "Add or modify metadata");
+
+		var header = new Adw.HeaderBar ();
+		header.title_widget = this.window_title;
+
+		var open_btn = new Gtk.Button.from_icon_name ("document-open-symbolic");
+		open_btn.action_name = "win.open";
+		open_btn.set_tooltip_text ("Select a PDF");
+		header.pack_start (open_btn);
+
+		var tag_btn = new Gtk.Button.with_label ("Tag");
+		tag_btn.add_css_class ("suggested-action");
+		tag_btn.action_name = "win.tag";
+		tag_btn.set_tooltip_text ("Write the metadata to the PDF");
+		header.pack_end (tag_btn);
+
+		/* metadata entries */
+		this.metadata_group = new Adw.PreferencesGroup ();
+		this.metadata_group.title = "Metadata";
+		this.title_row = this.make_entry_row ("Title");
+		this.author_row = this.make_entry_row ("Author");
+		this.subject_row = this.make_entry_row ("Subject");
+		this.keywords_row = this.make_entry_row ("Keywords");
+		this.producer_row = this.make_entry_row ("Producer");
+		this.creator_row = this.make_entry_row ("Creator");
+		this.metadata_group.sensitive = false;
+
+		/* dates */
+		this.dates_group = new Adw.PreferencesGroup ();
+		this.dates_group.title = "Dates";
+		this.creation_row = new DateRow ("Created");
+		this.mod_row = new DateRow ("Modified");
+		this.dates_group.add (this.creation_row);
+		this.dates_group.add (this.mod_row);
+		this.dates_group.sensitive = false;
+
+		/* document information */
+		var document_group = new Adw.PreferencesGroup ();
+		document_group.title = "Document";
+
+		var format_row = new Adw.ActionRow ();
+		format_row.title = "Format";
+		this.format_value = new Gtk.Label ("N/A");
+		this.format_value.add_css_class ("dim-label");
+		format_row.add_suffix (this.format_value);
+		document_group.add (format_row);
+
+		var pages_row = new Adw.ActionRow ();
+		pages_row.title = "Pages";
+		this.pages_value = new Gtk.Label ("N/A");
+		this.pages_value.add_css_class ("dim-label");
+		pages_row.add_suffix (this.pages_value);
+		document_group.add (pages_row);
+
+		this.viewer = AppInfo.get_default_for_type ("application/pdf", false);
+		this.view_row = new Adw.ButtonRow ();
+		this.view_row.start_icon_name = "adw-external-link-symbolic";
+		this.view_row.sensitive = false;
+		if (this.viewer != null) {
+			this.view_row.title = "Open with %s".printf (this.viewer.get_name ());
+		} else {
+			this.view_row.visible = false;
+		}
+		this.view_row.activated.connect (this.view_document);
+		document_group.add (this.view_row);
+
+		var box = new Gtk.Box (Gtk.Orientation.VERTICAL, 24);
+		box.margin_top = 24;
+		box.margin_bottom = 24;
+		box.append (this.metadata_group);
+		box.append (this.dates_group);
+		box.append (document_group);
+
+		var clamp = new Adw.Clamp ();
+		clamp.maximum_size = 500;
+		clamp.margin_start = 12;
+		clamp.margin_end = 12;
+		clamp.child = box;
+
+		var scrolled = new Gtk.ScrolledWindow ();
+		scrolled.hscrollbar_policy = Gtk.PolicyType.NEVER;
+		scrolled.propagate_natural_height = true;
+		scrolled.child = clamp;
+
+		this.toast_overlay = new Adw.ToastOverlay ();
+		this.toast_overlay.child = scrolled;
+
+		var toolbar_view = new Adw.ToolbarView ();
+		toolbar_view.add_top_bar (header);
+		toolbar_view.content = this.toast_overlay;
+		this.content = toolbar_view;
 	}
 
-	[Signal (action = true)]
-	private signal void open_file_dialog ();
-
-	[Signal (action = true)]
-	private signal void quit_app ();
-
-	private void add_accels () {
-		var accel_group = new AccelGroup ();
-		this.add_accel_group (accel_group);
-		this.open_file_dialog.connect (on_open_clicked);
-		this.quit_app.connect (Gtk.main_quit);
-		this.add_accelerator ("open_file_dialog", accel_group, Gdk.keyval_from_name ("o"), Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
-		this.add_accelerator ("quit_app", accel_group, Gdk.keyval_from_name ("q"), Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
+	private Adw.EntryRow make_entry_row (string title) {
+		var row = new Adw.EntryRow ();
+		row.title = title;
+		var clear_btn = new Gtk.Button.from_icon_name ("edit-clear-symbolic");
+		clear_btn.add_css_class ("flat");
+		clear_btn.valign = Gtk.Align.CENTER;
+		clear_btn.set_tooltip_text ("Clear");
+		clear_btn.clicked.connect (() => row.text = "");
+		row.add_suffix (clear_btn);
+		this.metadata_group.add (row);
+		return row;
 	}
 
-	private void on_creation_now_clicked () {
-		this.creation_date = new DateTime.now_local ();
-		this.creation_date_btn.label = creation_date.format (this.date_format);
-		this.creation_hour_btn.set_value (double.parse (creation_date.format ("%H")));
-		this.creation_min_btn.set_value (double.parse (creation_date.format ("%M")));
-		this.creation_sec_btn.set_value (double.parse (creation_date.format ("%S")));
-	}
+	private void on_open () {
+		var filters = new ListStore (typeof (Gtk.FileFilter));
+		var pdf_filter = new Gtk.FileFilter ();
+		pdf_filter.name = "PDF files";
+		pdf_filter.add_mime_type ("application/pdf");
+		pdf_filter.add_suffix ("pdf");
+		filters.append (pdf_filter);
+		var all_filter = new Gtk.FileFilter ();
+		all_filter.name = "All files";
+		all_filter.add_pattern ("*");
+		filters.append (all_filter);
 
-	private void on_mod_now_clicked () {
-		this.mod_date = new DateTime.now_local ();
-		this.mod_date_btn.label = mod_date.format (this.date_format);
-		this.mod_hour_btn.set_value (double.parse (mod_date.format ("%H")));
-		this.mod_min_btn.set_value (double.parse (mod_date.format ("%M")));
-		this.mod_sec_btn.set_value (double.parse (mod_date.format ("%S")));
-	}
-
-	private void on_date_clicked (Button btn) {
-		var popover = new Popover (btn);
-		var calendar = new Calendar ();
-		var date_parse = btn.label.split ("-", 3);
-		calendar.select_month (int.parse (date_parse[1]) - 1, int.parse (date_parse[0]));
-		calendar.select_day (int.parse (date_parse[2]));
-		popover.add (calendar);
-		calendar.day_selected.connect (() => {
-			var date = "%04d-%02d-%02d".printf (calendar.year, calendar.month + 1, calendar.day);
-			btn.label = date;
+		var dialog = new Gtk.FileDialog ();
+		dialog.title = "Open a PDF";
+		dialog.filters = filters;
+		dialog.default_filter = pdf_filter;
+		dialog.open.begin (this, null, (obj, res) => {
+			try {
+				this.load_file (dialog.open.end (res));
+			} catch (Error e) {
+				/* dialog dismissed */
+			}
 		});
-		popover.show_all ();
 	}
 
-	private void on_open_clicked () {
-		var file_chooser = new FileChooserNative (
-			"Open file", this, FileChooserAction.OPEN, "_Open", "_Cancel");
-		var filter = new FileFilter ();
-		filter.set_filter_name ("PDF files");
-		filter.add_pattern ("*.pdf");
-		file_chooser.add_filter (filter);
-		filter = new FileFilter ();
-		filter.set_filter_name ("All files");
-		filter.add_pattern ("*");
-		file_chooser.add_filter (filter);
-		if (file_chooser.run () == ResponseType.ACCEPT) {
-			this.pdf_file = file_chooser.get_file ();
-		}
-		file_chooser.destroy ();
-
-		/* update text entries with current metadata */
-		if (this.pdf_file != null) {
-			read_information ();
-		}
-	}
-
-	private void read_information () {
+	public void load_file (File file) {
+		Poppler.Document doc;
 		try {
-			var base_name = Path.get_basename (pdf_file.get_path ());
-			this.header.title = base_name;
-			this.header.subtitle = this.pdf_file.get_path ().replace (base_name, "");
-			this.document = new Poppler.Document.from_file (this.pdf_file.get_uri (), null);
-			this.title_entry.text = this.document.title ?? "";
-			this.author_entry.text = this.document.author ?? "";
-			this.subject_entry.text = this.document.subject ?? "";
-			this.keywords_entry.text = this.document.keywords ?? "";
-			this.producer_entry.text = this.document.producer ?? "";
-			this.creator_entry.text = this.document.creator ?? "";
-			this.format_label.label = "Format: " + this.document.get_pdf_version_string ();
-			this.pages_label.label = "Pages: " + this.document.get_n_pages ().to_string ();
-
-			this.creation_date = new DateTime.from_unix_local ((int64) this.document.creation_datetime);
-			this.creation_date_btn.label = creation_date.format (this.date_format);
-			this.creation_hour_btn.set_value (double.parse (creation_date.format ("%H")));
-			this.creation_min_btn.set_value (double.parse (creation_date.format ("%M")));
-			this.creation_sec_btn.set_value (double.parse (creation_date.format ("%S")));
-
-			this.mod_date = new DateTime.from_unix_local ((int64) this.document.mod_datetime);
-			this.mod_date_btn.label = mod_date.format (this.date_format);
-			this.mod_hour_btn.set_value (double.parse (mod_date.format ("%H")));
-			this.mod_min_btn.set_value (double.parse (mod_date.format ("%M")));
-			this.mod_sec_btn.set_value (double.parse (mod_date.format ("%S")));
+			doc = new Poppler.Document.from_file (file.get_uri (), null);
 		} catch (Error e) {
-			print ("%s\n", e.message);
+			this.toast_overlay.add_toast (new Adw.Toast (e.message));
+			return;
 		}
+
+		this.pdf_file = file;
+		this.document = doc;
+
+		this.window_title.title = file.get_basename ();
+		var parent = file.get_parent ();
+		this.window_title.subtitle = parent != null ? parent.get_path () : "";
+
+		this.title_row.text = doc.title ?? "";
+		this.author_row.text = doc.author ?? "";
+		this.subject_row.text = doc.subject ?? "";
+		this.keywords_row.text = doc.keywords ?? "";
+		this.producer_row.text = doc.producer ?? "";
+		this.creator_row.text = doc.creator ?? "";
+
+		this.format_value.label = doc.get_pdf_version_string ();
+		this.pages_value.label = doc.get_n_pages ().to_string ();
+
+		this.creation_row.set_datetime (doc.creation_datetime ?? new DateTime.now_local ());
+		this.mod_row.set_datetime (doc.mod_datetime ?? new DateTime.now_local ());
+
+		this.metadata_group.sensitive = true;
+		this.dates_group.sensitive = true;
+		this.view_row.sensitive = true;
+		this.tag_action.set_enabled (true);
 	}
 
 	private void view_document () {
-		if (this.pdf_file != null) {
-			var pdf_list = new List<File> ();
-			pdf_list.append (this.pdf_file);
-			try {
-				this.viewer.launch (pdf_list, null);
-			} catch (Error e) {
-				message (e.message);
-			}
-		} else {
-			message ("No document was selected!");
+		if (this.viewer == null || this.pdf_file == null) {
+			return;
+		}
+		var pdf_list = new List<File> ();
+		pdf_list.append (this.pdf_file);
+		try {
+			this.viewer.launch (pdf_list, null);
+		} catch (Error e) {
+			this.toast_overlay.add_toast (new Adw.Toast (e.message));
 		}
 	}
 
 	private void write_information () {
-			if (this.pdf_file != null) {
-				this.document.title = this.title_entry.text;
-				this.document.author = this.author_entry.text;
-				this.document.subject = this.subject_entry.text;
-				this.document.keywords = this.keywords_entry.text;
-				this.document.producer = this.producer_entry.text;
-				this.document.creator = this.creator_entry.text;
+		this.document.title = this.title_row.text;
+		this.document.author = this.author_row.text;
+		this.document.subject = this.subject_row.text;
+		this.document.keywords = this.keywords_row.text;
+		this.document.producer = this.producer_row.text;
+		this.document.creator = this.creator_row.text;
+		this.document.creation_datetime = this.creation_row.date;
+		this.document.mod_datetime = this.mod_row.date;
 
-				// date parsing
-				var creation_date_raw = this.creation_date_btn.label.split ("-", 3);
-				this.creation_date = new DateTime.local (
-					int.parse(creation_date_raw[0]), // year
-					int.parse(creation_date_raw[1]), // month
-					int.parse(creation_date_raw[2]), // day
-					this.creation_hour_btn.get_value_as_int (),
-					this.creation_min_btn.get_value_as_int (),
-					this.creation_sec_btn.get_value ()
-					);
-				var mod_date_raw = this.mod_date_btn.label.split ("-", 3);
-				this.mod_date = new DateTime.local (
-					int.parse(mod_date_raw[0]), // year
-					int.parse(mod_date_raw[1]), // month
-					int.parse(mod_date_raw[2]), // day
-					this.mod_hour_btn.get_value_as_int (),
-					this.mod_min_btn.get_value_as_int (),
-					this.mod_sec_btn.get_value ()
-					);
-				this.document.creation_datetime = creation_date;
-				this.document.mod_datetime = mod_date;
-
-				// save the modified document
-				try {
-					var tmp_file = File.new_for_path (this.header.subtitle + "tmp.pdf");
-					this.document.save(tmp_file.get_uri ());
-					uint8[] contents;
-					string etag;
-					tmp_file.load_contents (null, out contents, out etag);
-					var pdf_stream = FileStream.open (this.pdf_file.get_path (), "w");
-					pdf_stream.write (contents);
-					tmp_file.delete ();
-				} catch (Error e) {
-					print ("%s\n", e.message);
-				}
-			} else {
-				message ("No document was selected!");
+		try {
+			var tmp_path = Path.build_filename (this.pdf_file.get_parent ().get_path (), ".pdftag-XXXXXX.pdf");
+			var fd = FileUtils.mkstemp (tmp_path);
+			if (fd == -1) {
+				throw new IOError.FAILED ("Could not create a temporary file");
 			}
+			FileUtils.close (fd);
+			var tmp_file = File.new_for_path (tmp_path);
+			this.document.save (tmp_file.get_uri ());
+			try {
+				/* preserve the permissions of the original file */
+				var info = this.pdf_file.query_info (FileAttribute.UNIX_MODE, FileQueryInfoFlags.NONE);
+				tmp_file.set_attribute_uint32 (FileAttribute.UNIX_MODE, info.get_attribute_uint32 (FileAttribute.UNIX_MODE), FileQueryInfoFlags.NONE);
+			} catch (Error e) {
+				warning (e.message);
+			}
+			tmp_file.move (this.pdf_file, FileCopyFlags.OVERWRITE);
+			this.toast_overlay.add_toast (new Adw.Toast ("Tagged “%s”".printf (this.pdf_file.get_basename ())));
+			this.load_file (this.pdf_file);
+		} catch (Error e) {
+			this.toast_overlay.add_toast (new Adw.Toast (e.message));
+		}
+	}
+}
+
+public class Pdftag.Application : Adw.Application {
+	public Application () {
+		Object (application_id: "com.github.arrufat.pdftag",
+			flags: ApplicationFlags.HANDLES_OPEN);
+	}
+
+	protected override void startup () {
+		base.startup ();
+		var quit_action = new SimpleAction ("quit", null);
+		quit_action.activate.connect (() => this.quit ());
+		this.add_action (quit_action);
+		this.set_accels_for_action ("app.quit", { "<Control>q" });
+		this.set_accels_for_action ("win.open", { "<Control>o" });
+		this.set_accels_for_action ("win.tag", { "<Control>s" });
+
+		/* hide the edit (pencil) icons of the entry rows */
+		var css = new Gtk.CssProvider ();
+		css.load_from_string ("row.entry > box.header > .editable-area > .edit-icon { opacity: 0; -gtk-icon-size: 1px; min-width: 0; margin: 0; padding: 0; }");
+		add_style_provider_for_display (Gdk.Display.get_default (), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
+	}
+
+	protected override void activate () {
+		var win = this.active_window ?? new Window (this);
+		win.present ();
+	}
+
+	protected override void open (File[] files, string hint) {
+		var win = this.active_window as Window ?? new Window (this);
+		win.load_file (files[0]);
+		win.present ();
 	}
 }
 
 int main (string[] args) {
-	Gtk.init (ref args);
-
-	var pdftag = new Pdftag (ref args);
-	pdftag.show_all ();
-
-	Gtk.main ();
-	return 0;
+	return new Pdftag.Application ().run (args);
 }

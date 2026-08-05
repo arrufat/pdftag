@@ -4,5 +4,7 @@ Comment=Edit PDF metadata
 Type=Application
 Exec=pdftag %U
 Icon=document-properties
+Terminal=false
+Categories=Office;Utility;GTK;
 StartupNotify=true
 MimeType=application/pdf;
