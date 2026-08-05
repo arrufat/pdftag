@@ -3,6 +3,8 @@ project('pdftag', ['vala', 'c'],
     version: '2.0.0',
     license: 'GPL3+')
 
+add_project_arguments('-DVERSION="@0@"'.format(meson.project_version()), language: 'c')
+
 deps = [
     dependency('glib-2.0'),
     dependency('gobject-2.0'),

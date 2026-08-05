@@ -4,6 +4,10 @@
 [CCode (cheader_filename = "gtk/gtk.h", cname = "gtk_style_context_add_provider_for_display")]
 extern void add_style_provider_for_display (Gdk.Display display, Gtk.StyleProvider provider, uint priority);
 
+/* project version, defined by meson */
+[CCode (cname = "VERSION")]
+extern const string VERSION;
+
 public class Pdftag.DateRow : Adw.ActionRow {
 	private Gtk.MenuButton menu_btn;
 	private Gtk.Calendar calendar;
@@ -108,7 +112,7 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 	private Adw.PreferencesGroup dates_group;
 
 	public Window (Gtk.Application app) {
-		Object (application: app, title: "pdftag", default_width: 480);
+		Object (application: app, title: "pdftag", default_width: 640);
 
 		var open_action = new SimpleAction ("open", null);
 		open_action.activate.connect (() => this.on_open ());
@@ -124,6 +128,14 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 		this.view_action.activate.connect (() => this.view_document ());
 		this.add_action (this.view_action);
 
+		var shortcuts_action = new SimpleAction ("shortcuts", null);
+		shortcuts_action.activate.connect (() => this.show_shortcuts ());
+		this.add_action (shortcuts_action);
+
+		var about_action = new SimpleAction ("about", null);
+		about_action.activate.connect (() => this.show_about ());
+		this.add_action (about_action);
+
 		this.window_title = new Adw.WindowTitle ("pdftag", "Add or modify metadata");
 
 		var header = new Adw.HeaderBar ();
@@ -138,6 +150,16 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 		view_btn.action_name = "win.view";
 		view_btn.set_tooltip_text ("Open in Viewer");
 		header.pack_start (view_btn);
+
+		var menu = new GLib.Menu ();
+		menu.append ("Keyboard Shortcuts", "win.shortcuts");
+		menu.append ("About pdftag", "win.about");
+		var menu_btn = new Gtk.MenuButton ();
+		menu_btn.icon_name = "open-menu-symbolic";
+		menu_btn.primary = true;
+		menu_btn.menu_model = menu;
+		menu_btn.set_tooltip_text ("Main Menu");
+		header.pack_end (menu_btn);
 
 		var tag_btn = new Gtk.Button.with_label ("Tag");
 		tag_btn.add_css_class ("suggested-action");
@@ -190,7 +212,7 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 		box.append (document_group);
 
 		var clamp = new Adw.Clamp ();
-		clamp.maximum_size = 500;
+		clamp.maximum_size = 640;
 		clamp.margin_start = 12;
 		clamp.margin_end = 12;
 		clamp.child = box;
@@ -224,6 +246,30 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 
 	private void show_toast (string message) {
 		this.toast_overlay.add_toast (new Adw.Toast (message));
+	}
+
+	private void show_shortcuts () {
+		var section = new Adw.ShortcutsSection (null);
+		section.add (new Adw.ShortcutsItem.from_action ("Open a PDF", "win.open"));
+		section.add (new Adw.ShortcutsItem.from_action ("Tag the PDF", "win.tag"));
+		section.add (new Adw.ShortcutsItem.from_action ("Keyboard Shortcuts", "win.shortcuts"));
+		section.add (new Adw.ShortcutsItem.from_action ("Quit", "app.quit"));
+		var dialog = new Adw.ShortcutsDialog ();
+		dialog.add (section);
+		dialog.present (this);
+	}
+
+	private void show_about () {
+		var about = new Adw.AboutDialog ();
+		about.application_name = "pdftag";
+		about.application_icon = "document-properties";
+		about.version = VERSION;
+		about.developer_name = "Adrià Arrufat";
+		about.comments = "Add or modify metadata of PDF files";
+		about.license_type = Gtk.License.GPL_3_0;
+		about.website = "https://github.com/arrufat/pdftag";
+		about.issue_url = "https://github.com/arrufat/pdftag/issues";
+		about.present (this);
 	}
 
 	private void on_open () {
@@ -361,6 +407,7 @@ public class Pdftag.Application : Adw.Application {
 		this.set_accels_for_action ("app.quit", { "<Control>q" });
 		this.set_accels_for_action ("win.open", { "<Control>o" });
 		this.set_accels_for_action ("win.tag", { "<Control>s" });
+		this.set_accels_for_action ("win.shortcuts", { "<Control>question" });
 
 		/* hide the edit (pencil) icons of the entry rows */
 		var css = new Gtk.CssProvider ();
