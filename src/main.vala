@@ -324,7 +324,6 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 			}
 			tmp_file.move (this.pdf_file, FileCopyFlags.OVERWRITE);
 			this.show_toast ("Tagged “%s”".printf (this.pdf_file.get_basename ()));
-			this.load_file (this.pdf_file);
 		} catch (Error e) {
 			this.show_toast (e.message);
 		}
