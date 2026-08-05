@@ -5,20 +5,29 @@
 extern void add_style_provider_for_display (Gdk.Display display, Gtk.StyleProvider provider, uint priority);
 
 public class Pdftag.DateRow : Adw.ActionRow {
-	public DateTime date;
-
 	private Gtk.MenuButton menu_btn;
 	private Gtk.Calendar calendar;
 	private Gtk.SpinButton hour_btn;
 	private Gtk.SpinButton min_btn;
 	private Gtk.SpinButton sec_btn;
-	private bool updating = false;
 
 	private const string DATE_FORMAT = "%Y-%m-%d %H:%M:%S";
 
+	public DateTime date {
+		owned get {
+			var day = this.calendar.get_date ();
+			return new DateTime.local (
+				day.get_year (),
+				day.get_month (),
+				day.get_day_of_month (),
+				this.hour_btn.get_value_as_int (),
+				this.min_btn.get_value_as_int (),
+				this.sec_btn.get_value_as_int ());
+		}
+	}
+
 	public DateRow (string title) {
 		this.title = title;
-		this.date = new DateTime.now_local ();
 
 		this.calendar = new Gtk.Calendar ();
 
@@ -48,7 +57,6 @@ public class Pdftag.DateRow : Adw.ActionRow {
 		this.menu_btn = new Gtk.MenuButton ();
 		this.menu_btn.popover = popover;
 		this.menu_btn.valign = Gtk.Align.CENTER;
-		this.menu_btn.label = this.date.format (DATE_FORMAT);
 		this.add_suffix (this.menu_btn);
 		this.activatable_widget = this.menu_btn;
 
@@ -61,32 +69,18 @@ public class Pdftag.DateRow : Adw.ActionRow {
 			popover.popdown ();
 		});
 
-		this.set_datetime (this.date);
+		this.set_datetime (new DateTime.now_local ());
 	}
 
 	public void set_datetime (DateTime dt) {
-		this.updating = true;
-		this.date = dt;
 		this.calendar.set_date (dt);
 		this.hour_btn.value = dt.get_hour ();
 		this.min_btn.value = dt.get_minute ();
 		this.sec_btn.value = dt.get_second ();
 		this.menu_btn.label = dt.format (DATE_FORMAT);
-		this.updating = false;
 	}
 
 	private void on_changed () {
-		if (this.updating) {
-			return;
-		}
-		var day = this.calendar.get_date ();
-		this.date = new DateTime.local (
-			day.get_year (),
-			day.get_month (),
-			day.get_day_of_month (),
-			this.hour_btn.get_value_as_int (),
-			this.min_btn.get_value_as_int (),
-			this.sec_btn.get_value_as_int ());
 		this.menu_btn.label = this.date.format (DATE_FORMAT);
 	}
 }
@@ -99,12 +93,9 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 	private Adw.ToastOverlay toast_overlay;
 	private SimpleAction tag_action;
 
-	private Adw.EntryRow title_row;
-	private Adw.EntryRow author_row;
-	private Adw.EntryRow subject_row;
-	private Adw.EntryRow keywords_row;
-	private Adw.EntryRow producer_row;
-	private Adw.EntryRow creator_row;
+	/* Poppler.Document property names; the row titles are these, capitalized */
+	private const string[] METADATA_PROPERTIES = { "title", "author", "subject", "keywords", "producer", "creator" };
+	private Adw.EntryRow[] metadata_rows;
 
 	private DateRow creation_row;
 	private DateRow mod_row;
@@ -148,12 +139,11 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 		/* metadata entries */
 		this.metadata_group = new Adw.PreferencesGroup ();
 		this.metadata_group.title = "Metadata";
-		this.title_row = this.make_entry_row ("Title");
-		this.author_row = this.make_entry_row ("Author");
-		this.subject_row = this.make_entry_row ("Subject");
-		this.keywords_row = this.make_entry_row ("Keywords");
-		this.producer_row = this.make_entry_row ("Producer");
-		this.creator_row = this.make_entry_row ("Creator");
+		this.metadata_rows = {};
+		foreach (unowned string prop in METADATA_PROPERTIES) {
+			var row_title = prop.substring (0, 1).up () + prop.substring (1);
+			this.metadata_rows += this.make_entry_row (this.metadata_group, row_title);
+		}
 		this.metadata_group.sensitive = false;
 
 		/* dates */
@@ -222,7 +212,7 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 		this.content = toolbar_view;
 	}
 
-	private Adw.EntryRow make_entry_row (string title) {
+	private Adw.EntryRow make_entry_row (Adw.PreferencesGroup group, string title) {
 		var row = new Adw.EntryRow ();
 		row.title = title;
 		var clear_btn = new Gtk.Button.from_icon_name ("edit-clear-symbolic");
@@ -231,8 +221,12 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 		clear_btn.set_tooltip_text ("Clear");
 		clear_btn.clicked.connect (() => row.text = "");
 		row.add_suffix (clear_btn);
-		this.metadata_group.add (row);
+		group.add (row);
 		return row;
+	}
+
+	private void show_toast (string message) {
+		this.toast_overlay.add_toast (new Adw.Toast (message));
 	}
 
 	private void on_open () {
@@ -265,7 +259,7 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 		try {
 			doc = new Poppler.Document.from_file (file.get_uri (), null);
 		} catch (Error e) {
-			this.toast_overlay.add_toast (new Adw.Toast (e.message));
+			this.show_toast (e.message);
 			return;
 		}
 
@@ -276,12 +270,11 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 		var parent = file.get_parent ();
 		this.window_title.subtitle = parent != null ? parent.get_path () : "";
 
-		this.title_row.text = doc.title ?? "";
-		this.author_row.text = doc.author ?? "";
-		this.subject_row.text = doc.subject ?? "";
-		this.keywords_row.text = doc.keywords ?? "";
-		this.producer_row.text = doc.producer ?? "";
-		this.creator_row.text = doc.creator ?? "";
+		for (var i = 0; i < METADATA_PROPERTIES.length; i++) {
+			string? value;
+			doc.get (METADATA_PROPERTIES[i], out value);
+			this.metadata_rows[i].text = value ?? "";
+		}
 
 		this.format_value.label = doc.get_pdf_version_string ();
 		this.pages_value.label = doc.get_n_pages ().to_string ();
@@ -296,25 +289,19 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 	}
 
 	private void view_document () {
-		if (this.viewer == null || this.pdf_file == null) {
-			return;
-		}
 		var pdf_list = new List<File> ();
 		pdf_list.append (this.pdf_file);
 		try {
 			this.viewer.launch (pdf_list, null);
 		} catch (Error e) {
-			this.toast_overlay.add_toast (new Adw.Toast (e.message));
+			this.show_toast (e.message);
 		}
 	}
 
 	private void write_information () {
-		this.document.title = this.title_row.text;
-		this.document.author = this.author_row.text;
-		this.document.subject = this.subject_row.text;
-		this.document.keywords = this.keywords_row.text;
-		this.document.producer = this.producer_row.text;
-		this.document.creator = this.creator_row.text;
+		for (var i = 0; i < METADATA_PROPERTIES.length; i++) {
+			this.document.set (METADATA_PROPERTIES[i], this.metadata_rows[i].text);
+		}
 		this.document.creation_datetime = this.creation_row.date;
 		this.document.mod_datetime = this.mod_row.date;
 
@@ -328,17 +315,18 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 			var tmp_file = File.new_for_path (tmp_path);
 			this.document.save (tmp_file.get_uri ());
 			try {
-				/* preserve the permissions of the original file */
+				/* preserve the permissions of the original file; copy_attributes
+				 * is not used because it fails on standard::size */
 				var info = this.pdf_file.query_info (FileAttribute.UNIX_MODE, FileQueryInfoFlags.NONE);
 				tmp_file.set_attribute_uint32 (FileAttribute.UNIX_MODE, info.get_attribute_uint32 (FileAttribute.UNIX_MODE), FileQueryInfoFlags.NONE);
 			} catch (Error e) {
 				warning (e.message);
 			}
 			tmp_file.move (this.pdf_file, FileCopyFlags.OVERWRITE);
-			this.toast_overlay.add_toast (new Adw.Toast ("Tagged “%s”".printf (this.pdf_file.get_basename ())));
+			this.show_toast ("Tagged “%s”".printf (this.pdf_file.get_basename ()));
 			this.load_file (this.pdf_file);
 		} catch (Error e) {
-			this.toast_overlay.add_toast (new Adw.Toast (e.message));
+			this.show_toast (e.message);
 		}
 	}
 }
@@ -360,17 +348,20 @@ public class Pdftag.Application : Adw.Application {
 
 		/* hide the edit (pencil) icons of the entry rows */
 		var css = new Gtk.CssProvider ();
-		css.load_from_string ("row.entry > box.header > .editable-area > .edit-icon { opacity: 0; -gtk-icon-size: 1px; min-width: 0; margin: 0; padding: 0; }");
+		css.load_from_string ("row.entry .edit-icon { opacity: 0; -gtk-icon-size: 1px; min-width: 0; margin: 0; padding: 0; }");
 		add_style_provider_for_display (Gdk.Display.get_default (), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
 	}
 
+	private Window get_window () {
+		return this.active_window as Window ?? new Window (this);
+	}
+
 	protected override void activate () {
-		var win = this.active_window ?? new Window (this);
-		win.present ();
+		this.get_window ().present ();
 	}
 
 	protected override void open (File[] files, string hint) {
-		var win = this.active_window as Window ?? new Window (this);
+		var win = this.get_window ();
 		win.load_file (files[0]);
 		win.present ();
 	}
