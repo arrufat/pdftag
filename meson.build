@@ -14,6 +14,7 @@ deps = [
 pdftag = executable('pdftag',
     sources: ['src/main.vala'],
     dependencies: deps,
+    win_subsystem: 'windows',
     install: true)
 
 install_data('LICENSE',
