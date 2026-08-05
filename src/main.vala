@@ -92,6 +92,7 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 	private Adw.WindowTitle window_title;
 	private Adw.ToastOverlay toast_overlay;
 	private SimpleAction tag_action;
+	private SimpleAction view_action;
 
 	/* Poppler.Document property names; the row titles are these, capitalized */
 	private const string[] METADATA_PROPERTIES = { "title", "author", "subject", "keywords", "producer", "creator" };
@@ -105,8 +106,6 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 
 	private Adw.PreferencesGroup metadata_group;
 	private Adw.PreferencesGroup dates_group;
-	private Adw.ButtonRow view_row;
-	private AppInfo? viewer;
 
 	public Window (Gtk.Application app) {
 		Object (application: app, title: "pdftag", default_width: 480);
@@ -120,6 +119,11 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 		this.tag_action.activate.connect (() => this.write_information ());
 		this.add_action (this.tag_action);
 
+		this.view_action = new SimpleAction ("view", null);
+		this.view_action.set_enabled (false);
+		this.view_action.activate.connect (() => this.view_document ());
+		this.add_action (this.view_action);
+
 		this.window_title = new Adw.WindowTitle ("pdftag", "Add or modify metadata");
 
 		var header = new Adw.HeaderBar ();
@@ -129,6 +133,11 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 		open_btn.action_name = "win.open";
 		open_btn.set_tooltip_text ("Select a PDF");
 		header.pack_start (open_btn);
+
+		var view_btn = new Gtk.Button.from_icon_name ("adw-external-link-symbolic");
+		view_btn.action_name = "win.view";
+		view_btn.set_tooltip_text ("Open in Viewer");
+		header.pack_start (view_btn);
 
 		var tag_btn = new Gtk.Button.with_label ("Tag");
 		tag_btn.add_css_class ("suggested-action");
@@ -172,18 +181,6 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 		this.pages_value.add_css_class ("dim-label");
 		pages_row.add_suffix (this.pages_value);
 		document_group.add (pages_row);
-
-		this.viewer = AppInfo.get_default_for_type ("application/pdf", false);
-		this.view_row = new Adw.ButtonRow ();
-		this.view_row.start_icon_name = "adw-external-link-symbolic";
-		this.view_row.sensitive = false;
-		if (this.viewer != null) {
-			this.view_row.title = "Open with %s".printf (this.viewer.get_name ());
-		} else {
-			this.view_row.visible = false;
-		}
-		this.view_row.activated.connect (this.view_document);
-		document_group.add (this.view_row);
 
 		var box = new Gtk.Box (Gtk.Orientation.VERTICAL, 24);
 		box.margin_top = 24;
@@ -248,8 +245,10 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 		dialog.open.begin (this, null, (obj, res) => {
 			try {
 				this.load_file (dialog.open.end (res));
-			} catch (Error e) {
+			} catch (Gtk.DialogError e) {
 				/* dialog dismissed */
+			} catch (Error e) {
+				this.show_toast (e.message);
 			}
 		});
 	}
@@ -284,18 +283,21 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 
 		this.metadata_group.sensitive = true;
 		this.dates_group.sensitive = true;
-		this.view_row.sensitive = true;
+		this.view_action.set_enabled (true);
 		this.tag_action.set_enabled (true);
 	}
 
 	private void view_document () {
-		var pdf_list = new List<File> ();
-		pdf_list.append (this.pdf_file);
-		try {
-			this.viewer.launch (pdf_list, null);
-		} catch (Error e) {
-			this.show_toast (e.message);
-		}
+		var launcher = new Gtk.FileLauncher (this.pdf_file);
+		launcher.launch.begin (this, null, (obj, res) => {
+			try {
+				launcher.launch.end (res);
+			} catch (Gtk.DialogError e) {
+				/* dialog dismissed */
+			} catch (Error e) {
+				this.show_toast (e.message);
+			}
+		});
 	}
 
 	private void write_information () {
@@ -305,28 +307,43 @@ public class Pdftag.Window : Adw.ApplicationWindow {
 		this.document.creation_datetime = this.creation_row.date;
 		this.document.mod_datetime = this.mod_row.date;
 
-		try {
-			var tmp_path = Path.build_filename (this.pdf_file.get_parent ().get_path (), ".pdftag-XXXXXX.pdf");
-			var fd = FileUtils.mkstemp (tmp_path);
-			if (fd == -1) {
-				throw new IOError.FAILED ("Could not create a temporary file");
-			}
-			FileUtils.close (fd);
-			var tmp_file = File.new_for_path (tmp_path);
-			this.document.save (tmp_file.get_uri ());
+		/* snapshot for the worker thread: a new file may be loaded while saving */
+		var document = this.document;
+		var pdf_file = this.pdf_file;
+		this.tag_action.set_enabled (false);
+		new Thread<void> ("pdftag-save", () => {
+			string? error_message = null;
 			try {
-				/* preserve the permissions of the original file; copy_attributes
-				 * is not used because it fails on standard::size */
-				var info = this.pdf_file.query_info (FileAttribute.UNIX_MODE, FileQueryInfoFlags.NONE);
-				tmp_file.set_attribute_uint32 (FileAttribute.UNIX_MODE, info.get_attribute_uint32 (FileAttribute.UNIX_MODE), FileQueryInfoFlags.NONE);
+				save_document (document, pdf_file);
 			} catch (Error e) {
-				warning (e.message);
+				error_message = e.message;
 			}
-			tmp_file.move (this.pdf_file, FileCopyFlags.OVERWRITE);
-			this.show_toast ("Tagged “%s”".printf (this.pdf_file.get_basename ()));
-		} catch (Error e) {
-			this.show_toast (e.message);
+			Idle.add (() => {
+				this.show_toast (error_message ?? "Tagged “%s”".printf (pdf_file.get_basename ()));
+				this.tag_action.set_enabled (true);
+				return Source.REMOVE;
+			});
+		});
+	}
+
+	private static void save_document (Poppler.Document document, File pdf_file) throws Error {
+		var tmp_path = Path.build_filename (pdf_file.get_parent ().get_path (), ".pdftag-XXXXXX.pdf");
+		var fd = FileUtils.mkstemp (tmp_path);
+		if (fd == -1) {
+			throw new IOError.FAILED ("Could not create a temporary file");
 		}
+		FileUtils.close (fd);
+		var tmp_file = File.new_for_path (tmp_path);
+		document.save (tmp_file.get_uri ());
+		try {
+			/* preserve the permissions of the original file; copy_attributes
+			 * is not used because it fails on standard::size */
+			var info = pdf_file.query_info (FileAttribute.UNIX_MODE, FileQueryInfoFlags.NONE);
+			tmp_file.set_attribute_uint32 (FileAttribute.UNIX_MODE, info.get_attribute_uint32 (FileAttribute.UNIX_MODE), FileQueryInfoFlags.NONE);
+		} catch (Error e) {
+			warning (e.message);
+		}
+		tmp_file.move (pdf_file, FileCopyFlags.OVERWRITE);
 	}
 }
 
