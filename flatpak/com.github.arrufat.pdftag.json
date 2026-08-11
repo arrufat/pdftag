@@ -1,7 +1,7 @@
 {
   "id" : "com.github.arrufat.pdftag",
   "runtime" : "org.gnome.Platform",
-  "runtime-version" : "49",
+  "runtime-version" : "46",
   "sdk" : "org.gnome.Sdk",
   "command" : "pdftag",
   "modules" : [
